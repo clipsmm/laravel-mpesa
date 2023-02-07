@@ -1,0 +1,48 @@
+{
+    "name": "clipsmm/laravel-mpesa",
+    "description": "Laravel Mpesa package",
+    "keywords": ["laravel", "lumen", "mpesa"],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Cliff Mitamita",
+            "email": "mitacliff@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "illuminate/support": "^5.0|^6.0|^7.0|^8.0",
+        "guzzlehttp/guzzle": "^6.0|^7.0",
+        "monolog/monolog": "^1.0|^2.0"
+    },
+    "require-dev": {
+        "mockery/mockery" : "0.9.*",
+        "phpunit/phpunit" : "4.7.*",
+        "satooshi/php-coveralls": "dev-master",
+        "laravel/laravel": "8.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "LaravelMpesa\\": "src/",
+            "LaravelMpesa\\Mocks\\": "tests/mocks"
+        }
+    },
+    "autoload-dev": {
+        "classmap": [
+            "tests/"
+        ]
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": false,
+    "extra": {
+        "laravel": {
+            "providers": [
+                "LaravelMpesa\\MpesaServiceProvider"
+            ],
+            "aliases": {
+                "Mpesa": "LaravelMpesa\\Mpesa"
+            }
+        }
+    }
+}
