@@ -4,7 +4,6 @@
 namespace LaravelMpesa;
 
 
-use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Support\Facades\Http;
 
 class RequestManager
@@ -36,7 +35,7 @@ class RequestManager
                 ->get($url);
             $data = json_decode($response->body(), true);
 
-            if($response->successful()) {
+            if ($response->successful()) {
                 $this->authed_at = time();
                 $this->access_token = $data['access_token'];
                 $this->expires_in = $data['expires_in'];
@@ -44,9 +43,7 @@ class RequestManager
                 return true;
             }
 
-            logger()->error("Mpesa:Authentication", $data);
             return false;
-
         } catch (\Exception $e) {
             throw $e;
         }
@@ -122,11 +119,11 @@ class RequestManager
      */
     private function send($url, array $payload): array
     {
-        if(!$this->isAuthenticated()) {
+        if (!$this->isAuthenticated()) {
             $this->authenticate();
         }
 
-         $response = Http::withToken($this->access_token)
+        $response = Http::withToken($this->access_token)
             ->post($url, $payload);
 
         $data = json_decode($response->body(), true);
@@ -162,7 +159,6 @@ class RequestManager
         }
 
         return time() < ($this->authed_at + $this->expires_in);
-
     }
 
     /**
@@ -175,12 +171,11 @@ class RequestManager
         try {
             $val =  $this->config[$key];
 
-            if(!$val) {
+            if (!$val) {
                 $val = env($key, $default);
             }
 
             return $val;
-
         } catch (\Exception $exception) {
             return $default;
         }

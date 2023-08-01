@@ -12,15 +12,12 @@
     ],
     "require": {
         "php": ">=7.4",
-        "illuminate/support": "^5.0|^6.0|^7.0|^8.0",
-        "guzzlehttp/guzzle": "^6.0|^7.0",
-        "monolog/monolog": "^1.0|^2.0"
+        "illuminate/support": "^5.0|^6.0|^7.0|^8.0|^9.21|^10.0",
+        "monolog/monolog": "^1.0|^2.0|^3.0"
     },
     "require-dev": {
         "mockery/mockery" : "0.9.*",
-        "phpunit/phpunit" : "4.7.*",
-        "satooshi/php-coveralls": "dev-master",
-        "laravel/laravel": "8.*"
+        "phpunit/phpunit" : "4.7.*"
     },
     "autoload": {
         "psr-4": {

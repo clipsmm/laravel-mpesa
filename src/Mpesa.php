@@ -1,4 +1,5 @@
 <?php
+
 namespace LaravelMpesa;
 
 use Illuminate\Support\Facades\Facade;
