@@ -2,12 +2,12 @@
 
 namespace LaravelMpesa;
 
+use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 
-class MpesaServiceProvider extends ServiceProvider
+class MpesaServiceProvider extends ServiceProvider implements DeferrableProvider
 {
-    protected $defer = true;
 
     /**
      * Package name.
@@ -40,6 +40,6 @@ class MpesaServiceProvider extends ServiceProvider
 
     public function provides()
     {
-        return [];
+        return ['\LaravelMpesa\Facade\Mpesa'];
     }
 }
