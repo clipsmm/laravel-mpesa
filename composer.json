@@ -1,17 +1,21 @@
 {
     "name": "clipsmm/laravel-mpesa",
     "description": "Laravel Mpesa package",
-    "keywords": ["laravel", "lumen", "mpesa"],
+    "keywords": [
+        "laravel",
+        "lumen",
+        "mpesa"
+    ],
     "type": "library",
     "license": "MIT",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "authors": [
         {
             "name": "Cliff Mitamita",
             "email": "mitacliff@gmail.com"
         }
     ],
-     "require": {
+    "require": {
         "php": ">=8.2",
         "illuminate/http": "^12.61.1|^13.12",
         "illuminate/support": "^12.61.1|^13.12",
