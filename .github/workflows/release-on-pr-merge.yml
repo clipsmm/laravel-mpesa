@@ -1,0 +1,144 @@
+name: Release on merged pull request
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main, master]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.pull_request.base.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Test and release
+    if: ${{ github.event.pull_request.merged == true }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out merged target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, json
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run tests
+        run: |
+          composer test
+          if [ -d tests/Integration ]; then
+            vendor/bin/phpunit tests/Integration
+          fi
+
+      - name: Audit dependencies
+        run: composer audit
+
+      - name: Select semantic version bump
+        id: bump
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const supported = ['release:patch', 'release:minor', 'release:major'];
+            const labels = context.payload.pull_request.labels.map((label) => label.name);
+            const selected = supported.filter((label) => labels.includes(label));
+
+            if (selected.length > 1) {
+              core.setFailed(`Use only one release label: ${selected.join(', ')}`);
+              return;
+            }
+
+            core.setOutput('type', selected.length === 1 ? selected[0].slice(8) : 'patch');
+
+      - name: Configure release author
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+      - name: Prepare release commit and tag
+        id: release
+        env:
+          BUMP_TYPE: ${{ steps.bump.outputs.type }}
+        run: |
+          manifest_version=$(php -r '$data = json_decode(file_get_contents("composer.json"), true, 512, JSON_THROW_ON_ERROR); echo $data["version"] ?? "";')
+
+          if [[ ! "$manifest_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "composer.json must contain a semantic version." >&2
+            exit 1
+          fi
+
+          before_release=$(git rev-parse HEAD)
+
+          if [ "$manifest_version" = "0.0.0" ] || git rev-parse --verify --quiet "refs/tags/v$manifest_version"; then
+            php bin/release.php "$BUMP_TYPE" --yes
+            release_version=$(php -r '$data = json_decode(file_get_contents("composer.json"), true, 512, JSON_THROW_ON_ERROR); echo $data["version"];')
+          else
+            latest_tag=$(git tag --list 'v[0-9]*' --sort=-version:refname | head -n 1)
+            latest_version=${latest_tag#v}
+
+            if [ -n "$latest_version" ]; then
+              php -r 'exit(version_compare($argv[1], $argv[2], ">") ? 0 : 1);' "$manifest_version" "$latest_version" || {
+                echo "Manifest version must be greater than latest tag $latest_tag." >&2
+                exit 1
+              }
+            fi
+
+            grep -Fq "## [$manifest_version]" CHANGELOG.md || {
+              echo "CHANGELOG.md must contain ## [$manifest_version]." >&2
+              exit 1
+            }
+
+            release_version=$manifest_version
+            git tag -a "v$release_version" -m "Release v$release_version"
+          fi
+
+          echo "before_release=$before_release" >> "$GITHUB_OUTPUT"
+          echo "version=$release_version" >> "$GITHUB_OUTPUT"
+
+      - name: Push release commit and tag
+        env:
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          BEFORE_RELEASE: ${{ steps.release.outputs.before_release }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          if [ "$(git rev-parse HEAD)" != "$BEFORE_RELEASE" ]; then
+            git push origin "HEAD:$BASE_BRANCH"
+          fi
+
+          git push origin "refs/tags/v$RELEASE_VERSION"
+
+      - name: Build release notes
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          notes_file="$RUNNER_TEMP/release-notes.md"
+          awk -v version="$RELEASE_VERSION" '
+            $0 == "## [" version "]" || index($0, "## [" version "] - ") == 1 { capture = 1; next }
+            capture && /^## \[/ { exit }
+            capture { print }
+          ' CHANGELOG.md > "$notes_file"
+
+          if [ ! -s "$notes_file" ]; then
+            printf 'Release v%s\n' "$RELEASE_VERSION" > "$notes_file"
+          fi
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          gh release create "v$RELEASE_VERSION" \
+            --verify-tag \
+            --title "Release v$RELEASE_VERSION" \
+            --notes-file "$RUNNER_TEMP/release-notes.md"

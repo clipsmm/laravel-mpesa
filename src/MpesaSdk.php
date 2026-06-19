@@ -1,39 +1,46 @@
 <?php
 
+declare(strict_types=1);
+
 namespace LaravelMpesa;
 
 use Illuminate\Support\Arr;
+use InvalidArgumentException;
 
-/**
- * Class MpesaSdk
- * @package LaravelMpesa
- */
 class MpesaSdk
 {
-    protected $app;
-    protected $config = [];
+    protected string $app;
 
+    protected array $config = [];
 
-    public function __construct($app = null, array $opts = [])
+    /**
+     * Create an SDK instance for a configured Mpesa application.
+     */
+    public function __construct(?string $app = null, array $opts = [])
     {
-        $app  =  $app ? : config('mpesa.default');
-        $this->app  = $app;
-        $this->config =  config("mpesa.apps.{$app}");
+        $this->app = $app ?: (string) config('mpesa.default');
+        $configured = config("mpesa.apps.{$this->app}");
+
+        if (!is_array($configured)) {
+            throw new InvalidArgumentException("Mpesa application [{$this->app}] is not configured.");
+        }
+
+        $this->config = array_merge($configured, $opts);
     }
 
     /**
-     * Get MpesaFacade Manager Instance
-     *
-     * @param string|null $app
-     * @return RequestManager
+     * Create a request manager for the selected configured Mpesa application.
      */
-    public static function instance(string $app = null): RequestManager
+    public static function instance(?string $app = null): RequestManager
     {
-        $app  =  $app ?? config('mpesa.default');
-        $baseConfig =  Arr::except(config("mpesa"), ['apps']);
+        $app = $app ?? (string) config('mpesa.default');
+        $baseConfig = Arr::except((array) config('mpesa'), ['apps']);
         $instanceConfig = config("mpesa.apps.{$app}");
-        $config = array_merge($baseConfig, $instanceConfig);
 
-        return (new RequestManager($config));
+        if (!is_array($instanceConfig)) {
+            throw new InvalidArgumentException("Mpesa application [{$app}] is not configured.");
+        }
+
+        return new RequestManager(array_merge($baseConfig, $instanceConfig));
     }
 }

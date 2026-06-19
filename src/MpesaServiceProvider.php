@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace LaravelMpesa;
 
 use Illuminate\Contracts\Support\DeferrableProvider;
@@ -16,7 +18,10 @@ class MpesaServiceProvider extends ServiceProvider implements DeferrableProvider
      */
     protected $package = '@clipsmm/laravel-mpesa';
 
-    public function boot()
+    /**
+     * Publish or configure the Mpesa package configuration.
+     */
+    public function boot(): void
     {
         if (Str::contains($this->app->version(), 'Lumen')) {
             $this->app->configure('mpesa');
@@ -27,19 +32,23 @@ class MpesaServiceProvider extends ServiceProvider implements DeferrableProvider
         }
     }
 
-    public function register()
+    /**
+     * Register the Mpesa SDK with Laravel's service container.
+     */
+    public function register(): void
     {
         if (!Str::contains($this->app->version(), 'Lumen')) {
             $this->mergeConfigFrom(__DIR__.'/../config/mpesa.php', 'mpesa');
         }
 
-        $this->app->bind('\LaravelMpesa\Facade\Mpesa', function () {
-            return $this->app->make(MpesaSdk::class);
-        });
+        $this->app->singleton(MpesaSdk::class, fn () => new MpesaSdk());
     }
 
-    public function provides()
+    /**
+     * Return services provided by this deferred provider.
+     */
+    public function provides(): array
     {
-        return ['\LaravelMpesa\Facade\Mpesa'];
+        return [MpesaSdk::class];
     }
 }
