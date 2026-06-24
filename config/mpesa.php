@@ -5,6 +5,7 @@ return [
     'connect_timeout' => (int) env('MPESA_CONNECT_TIMEOUT', 5),
     'timeout' => (int) env('MPESA_TIMEOUT', 15),
     'allow_insecure_callbacks' => (bool) env('MPESA_ALLOW_INSECURE_CALLBACKS', false),
+    'logging' => (bool) env('MPESA_LOGGING', false),
     'apps' => [
         'c2b' => [
             'status' => env('MPESA_API_STATUS'),

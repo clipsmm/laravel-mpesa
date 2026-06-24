@@ -25,7 +25,9 @@
     "require-dev": {
         "mockery/mockery": "^1.6.12",
         "orchestra/testbench": "^10.0|^11.0",
-        "phpunit/phpunit": "^10.5.62|^11.5.50|^12.5.8|^13.1"
+        "phpunit/phpunit": "^10.5.62|^11.5.50|^12.5.8|^13.1",
+        "larastan/larastan": "^3.0",
+        "laravel/pint": "^1.19"
     },
     "autoload": {
         "psr-4": {
@@ -40,6 +42,11 @@
     },
     "scripts": {
         "test": "vendor/bin/phpunit",
+        "test:coverage": "vendor/bin/phpunit --coverage-html coverage",
+        "analyse": "vendor/bin/phpstan analyse",
+        "format": "vendor/bin/pint",
+        "format:test": "vendor/bin/pint --test",
+        "docs:serve": "php -S localhost:8000 -t docs",
         "release": "php bin/release.php",
         "release:patch": "php bin/release.php patch",
         "release:minor": "php bin/release.php minor",

@@ -2,3 +2,8 @@
 /.phpunit.cache/
 /coverage/
 *.log
+.DS_Store
+.idea/
+.vscode/
+*.cache
+composer.lock

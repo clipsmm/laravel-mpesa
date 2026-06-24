@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace LaravelMpesa;
 
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
+use LaravelMpesa\Responses\StkPushResponse;
+use LaravelMpesa\Responses\StkQueryResponse;
+use LaravelMpesa\Responses\UrlRegistrationResponse;
 use RuntimeException;
 
 class RequestManager
@@ -59,28 +64,33 @@ class RequestManager
     /**
      * Register HTTPS validation and confirmation callback URLs with Mpesa.
      *
-     * @return array{0: bool, 1: array}
+     * @return array{0: bool, 1: array}|UrlRegistrationResponse
      */
     public function registerUrls(
         string $validationUrl,
         string $confirmationUrl,
-        string $responseType = 'Cancelled'
-    ): array {
+        string $responseType = 'Cancelled',
+        bool $returnDto = false,
+    ): array|UrlRegistrationResponse {
         $this->assertCallbackUrl($validationUrl);
         $this->assertCallbackUrl($confirmationUrl);
 
-        return $this->send($this->getEndpoint('/mpesa/c2b/v2/registerurl'), [
+        [$successful, $data] = $this->send($this->getEndpoint('/mpesa/c2b/v2/registerurl'), [
             'ResponseType' => $responseType,
             'ValidationURL' => $validationUrl,
             'ConfirmationURL' => $confirmationUrl,
             'ShortCode' => $this->requiredConfig('shortcode'),
         ]);
+
+        return $returnDto 
+            ? UrlRegistrationResponse::fromArray($successful, $data)
+            : [$successful, $data];
     }
 
     /**
      * Send an STK Push to a Kenyan MSISDN.
      *
-     * @return array{0: bool, 1: array}
+     * @return array{0: bool, 1: array}|StkPushResponse
      */
     public function stkPush(
         string $receiver,
@@ -88,8 +98,9 @@ class RequestManager
         string $ref,
         string $description,
         string $callbackUrl,
-        string $transactionType = 'CustomerPayBillOnline'
-    ): array {
+        string $transactionType = 'CustomerPayBillOnline',
+        bool $returnDto = false,
+    ): array|StkPushResponse {
         if (preg_match('/^2547\d{8}$/', $receiver) !== 1) {
             throw new InvalidArgumentException('Receiver must use the 2547XXXXXXXX format.');
         }
@@ -107,7 +118,7 @@ class RequestManager
         $shortCode = $this->requiredConfig('shortcode');
         $password = base64_encode($shortCode . $this->requiredConfig('passkey') . $timestamp);
 
-        return $this->send($this->getEndpoint('/mpesa/stkpush/v1/processrequest'), [
+        [$successful, $data] = $this->send($this->getEndpoint('/mpesa/stkpush/v1/processrequest'), [
             'BusinessShortCode' => $shortCode,
             'Password' => $password,
             'Timestamp' => $timestamp,
@@ -121,6 +132,39 @@ class RequestManager
             'TransactionDesc' => $description,
             'Remark' => $description,
         ]);
+
+        return $returnDto 
+            ? StkPushResponse::fromArray($successful, $data)
+            : [$successful, $data];
+    }
+
+    /**
+     * Query the status of an STK Push transaction.
+     *
+     * @return array{0: bool, 1: array}|StkQueryResponse
+     */
+    public function stkQuery(
+        string $checkoutRequestId,
+        bool $returnDto = false,
+    ): array|StkQueryResponse {
+        if ($checkoutRequestId === '') {
+            throw new InvalidArgumentException('Checkout request ID cannot be empty.');
+        }
+
+        $timestamp = date('YmdHis');
+        $shortCode = $this->requiredConfig('shortcode');
+        $password = base64_encode($shortCode . $this->requiredConfig('passkey') . $timestamp);
+
+        [$successful, $data] = $this->send($this->getEndpoint('/mpesa/stkpushquery/v1/query'), [
+            'BusinessShortCode' => $shortCode,
+            'Password' => $password,
+            'Timestamp' => $timestamp,
+            'CheckoutRequestID' => $checkoutRequestId,
+        ]);
+
+        return $returnDto 
+            ? StkQueryResponse::fromArray($successful, $data)
+            : [$successful, $data];
     }
 
     /**
@@ -168,13 +212,40 @@ class RequestManager
             throw new RuntimeException('Unable to authenticate with Mpesa.');
         }
 
+        // Log request (excluding sensitive data)
+        if ($this->shouldLog()) {
+            Log::info('Mpesa API Request', [
+                'url' => $url,
+                'payload' => Arr::except($payload, ['Password', 'SecurityCredential']),
+            ]);
+        }
+
         $response = Http::withToken((string) $this->accessToken)
             ->connectTimeout($this->connectTimeout())
             ->timeout($this->timeout())
             ->post($url, $payload);
         $data = $response->json();
+        $successful = $response->successful();
 
-        return [$response->successful(), is_array($data) ? $data : []];
+        // Log response
+        if ($this->shouldLog()) {
+            Log::info('Mpesa API Response', [
+                'url' => $url,
+                'successful' => $successful,
+                'status' => $response->status(),
+                'data' => $data,
+            ]);
+        }
+
+        return [$successful, is_array($data) ? $data : []];
+    }
+
+    /**
+     * Determine if requests should be logged.
+     */
+    private function shouldLog(): bool
+    {
+        return (bool) $this->getConfig('logging', false);
     }
 
     private function isLive(): bool

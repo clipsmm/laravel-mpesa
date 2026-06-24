@@ -7,6 +7,26 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- Response DTOs (`StkPushResponse`, `StkQueryResponse`, `UrlRegistrationResponse`) for type-safe API responses
+- STK Query method for checking payment status with `isPaymentSuccessful()`, `isPaymentPending()`, and `isPaymentFailed()` helpers
+- `ValidatesMpesaCallback` trait for secure callback validation and parsing
+- Request/response logging support via `MPESA_LOGGING` config
+- Static analysis with PHPStan (Level 8) and Larastan
+- Code style enforcement with Laravel Pint
+- Comprehensive test coverage (26+ tests covering all features)
+- Response DTO tests and callback validation tests
+- `.editorconfig` for consistent code formatting
+- `CONTRIBUTING.md` guide for contributors
+- New composer scripts: `test:coverage`, `analyse`, `format`, `format:test`
+
+### Changed
+
+- All API methods now support optional `returnDto` parameter for typed responses
+- Logging excludes sensitive fields (passwords, credentials) automatically
+- Improved test coverage from 6 to 26+ tests with 80+ assertions
+
 ## [0.1.0] - 2026-06-19
 
 ### Added
