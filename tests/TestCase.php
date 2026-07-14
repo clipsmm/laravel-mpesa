@@ -26,6 +26,8 @@ abstract class TestCase extends Orchestra
             'consumer_secret' => 'test-secret',
             'shortcode' => '174379',
             'passkey' => 'test-passkey',
+            'initiator_name' => 'test-initiator',
+            'initiator_password' => 'test-security-credential',
         ]);
     }
 }

@@ -17,7 +17,9 @@
     ],
     "require": {
         "php": ">=8.2",
+        "illuminate/console": "^12.61.1|^13.12",
         "illuminate/http": "^12.61.1|^13.12",
+        "illuminate/routing": "^12.61.1|^13.12",
         "illuminate/support": "^12.61.1|^13.12",
         "guzzlehttp/guzzle": "^7.12.1",
         "monolog/monolog": "^3.9"

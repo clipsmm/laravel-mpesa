@@ -30,7 +30,9 @@ callback, and transaction-validation controls.
 
 ## Residual Responsibilities
 
-Host applications own callback controllers. They must validate Safaricom
-payloads, authenticate where supported, reconcile amount/reference/shortcode,
-make processing idempotent, rate-limit initiation endpoints, and avoid logging
+The package provides an overrideable STK callback controller and events with an
+IP allowlist. It defaults to `*` in local and testing environments and Safaricom
+callback IPs elsewhere. Host applications still own callback trust decisions:
+authenticate where supported, reconcile amount/reference/shortcode, make
+processing idempotent, rate-limit initiation endpoints, and avoid logging
 tokens, passkeys, or full callback bodies.

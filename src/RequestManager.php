@@ -124,6 +124,53 @@ class RequestManager
     }
 
     /**
+     * Query the status of a completed or initiated Mpesa transaction.
+     *
+     * @return array{0: bool, 1: array}
+     */
+    public function transactionStatus(
+        string $identifier,
+        string $resultUrl,
+        string $timeoutUrl,
+        string $identifierType = '4',
+        string $remarks = 'Transaction status query',
+        string $occasion = 'TransactionStatus'
+    ): array {
+        $identifier = trim($identifier);
+        $identifierType = trim($identifierType);
+        $remarks = trim($remarks) ?: 'Transaction status query';
+        $occasion = trim($occasion) ?: 'TransactionStatus';
+
+        if ($identifier === '' || strlen($identifier) > 100) {
+            throw new InvalidArgumentException('Transaction status identifier is invalid.');
+        }
+
+        if (!in_array($identifierType, ['1', '2', '3', '4'], true)) {
+            throw new InvalidArgumentException('Transaction status identifier type is invalid.');
+        }
+
+        if (strlen($remarks) > 100 || strlen($occasion) > 100) {
+            throw new InvalidArgumentException('Transaction status remarks or occasion is invalid.');
+        }
+
+        $this->assertCallbackUrl($resultUrl);
+        $this->assertCallbackUrl($timeoutUrl);
+
+        return $this->send($this->getEndpoint('/mpesa/transactionstatus/v1/query'), [
+            'Initiator' => $this->requiredConfig('initiator_name'),
+            'SecurityCredential' => $this->requiredConfig('initiator_password'),
+            'CommandID' => 'TransactionStatusQuery',
+            'TransactionID' => $identifier,
+            'PartyA' => $this->requiredConfig('shortcode'),
+            'IdentifierType' => $identifierType,
+            'ResultURL' => $resultUrl,
+            'QueueTimeOutURL' => $timeoutUrl,
+            'Remarks' => $remarks,
+            'Occasion' => $occasion,
+        ]);
+    }
+
+    /**
      * Resolve a relative Daraja API path against the live or sandbox host.
      */
     public function getEndpoint(string $url): string

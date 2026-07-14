@@ -117,6 +117,33 @@ public function stkPush(
 Requires a `2547XXXXXXXX` receiver, positive amount, bounded reference and
 description, and an approved callback URL.
 
+### `RequestManager::transactionStatus(...)`
+
+```php
+public function transactionStatus(
+    string $identifier,
+    string $resultUrl,
+    string $timeoutUrl,
+    string $identifierType = '4',
+    string $remarks = 'Transaction status query',
+    string $occasion = 'TransactionStatus',
+): array
+```
+
+Queries Daraja TransactionStatus for an Mpesa receipt or provider conversation
+identifier. The result and timeout URLs must be valid HTTPS callback URLs unless
+the app is in sandbox and insecure callbacks are explicitly allowed.
+
+Console helpers:
+
+```bash
+php artisan mpesa:status --receipt=UGEHJB6GMF --result=https://example.test/status/result --timeout=https://example.test/status/timeout
+php artisan mpesa:status --conversationId=AG_20260714_12345
+```
+
+When `--result` or `--timeout` are omitted, the command reads
+`MPESA_TRANSACTION_STATUS_RESULT_URL` and `MPESA_TRANSACTION_STATUS_TIMEOUT_URL`.
+
 ### `RequestManager::getEndpoint(string $url): string`
 
 Resolves a relative Daraja path against the configured live or sandbox host.
@@ -133,8 +160,16 @@ environment variables at runtime.
 
 ## HTTP Endpoints and OpenAPI
 
-This package registers no controllers or inbound routes. Host applications must
-implement, authenticate, validate, and document their own callback endpoints.
+This package registers a configurable STK callback endpoint:
+
+- `POST /signal/ingress/pulse`
+
+The route, middleware, controller, and emitted events can be overridden from
+`config/mpesa.php` under the `callbacks` key. Host applications can replace the
+controller class or extend `LaravelMpesa\Http\Controllers\Callbacks\StkCallbackController`.
+Callback requests are IP-allowlisted. The package defaults to `*` in local and
+testing environments and Safaricom callback IPs in other environments. Override
+with `MPESA_CALLBACK_ALLOWED_IPS` or `mpesa.callbacks.allowed_ips`.
 See [the API surface note](docs/wikis/api.md).
 
 ## Security

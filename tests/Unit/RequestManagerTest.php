@@ -13,7 +13,7 @@ use PHPUnit\Framework\Attributes\Test;
 class RequestManagerTest extends TestCase
 {
     #[Test]
-    public function it_authenticates_with_http_basic_credentials(): void
+    public function test_authenticatesWithHttpBasicCredentials(): void
     {
         Http::fake([
             '*/oauth/v1/generate*' => Http::response([
@@ -33,7 +33,7 @@ class RequestManagerTest extends TestCase
     }
 
     #[Test]
-    public function it_rejects_absolute_or_traversing_api_paths(): void
+    public function test_rejectsAbsoluteOrTraversingApiPaths(): void
     {
         $manager = MpesaSdk::instance();
 
@@ -42,7 +42,7 @@ class RequestManagerTest extends TestCase
     }
 
     #[Test]
-    public function it_requires_https_callback_urls(): void
+    public function test_requiresHttpsCallbackUrls(): void
     {
         $manager = MpesaSdk::instance();
 
@@ -52,7 +52,7 @@ class RequestManagerTest extends TestCase
     }
 
     #[Test]
-    public function it_validates_stk_inputs_before_authentication(): void
+    public function test_validatesStkInputsBeforeAuthentication(): void
     {
         $manager = MpesaSdk::instance();
 
@@ -62,7 +62,7 @@ class RequestManagerTest extends TestCase
     }
 
     #[Test]
-    public function it_sends_an_authenticated_stk_push(): void
+    public function test_sendsAuthenticatedStkPush(): void
     {
         Http::fake([
             '*/oauth/v1/generate*' => Http::response([
@@ -90,7 +90,40 @@ class RequestManagerTest extends TestCase
     }
 
     #[Test]
-    public function configuration_does_not_fall_back_to_arbitrary_environment_keys(): void
+    public function test_sendsAuthenticatedTransactionStatusQuery(): void
+    {
+        Http::fake([
+            '*/oauth/v1/generate*' => Http::response([
+                'access_token' => 'access-token',
+                'expires_in' => 3599,
+            ]),
+            '*/mpesa/transactionstatus/v1/query' => Http::response([
+                'ResponseCode' => '0',
+                'ConversationID' => 'AG_123',
+            ]),
+        ]);
+
+        [$successful, $response] = MpesaSdk::instance()->transactionStatus(
+            'UGEHJB6GMF',
+            'https://example.test/status/result',
+            'https://example.test/status/timeout'
+        );
+
+        $this->assertTrue($successful);
+        $this->assertSame('0', $response['ResponseCode']);
+        Http::assertSent(fn ($request) => $request->method() === 'POST'
+            && str_contains($request->url(), '/mpesa/transactionstatus/v1/query')
+            && $request['CommandID'] === 'TransactionStatusQuery'
+            && $request['TransactionID'] === 'UGEHJB6GMF'
+            && $request['IdentifierType'] === '4'
+            && $request['Initiator'] === 'test-initiator'
+            && $request['SecurityCredential'] === 'test-security-credential'
+            && $request['ResultURL'] === 'https://example.test/status/result'
+            && $request['QueueTimeOutURL'] === 'https://example.test/status/timeout');
+    }
+
+    #[Test]
+    public function test_configurationDoesNotFallBackToArbitraryEnvironmentKeys(): void
     {
         $manager = new RequestManager([]);
 
