@@ -71,16 +71,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Docs
 
-- Replaced the single long-form README with a topic-per-page documentation
-  site under `docs/` (Docsify, served via GitHub Pages). The root README is
-  now a short landing page linking into it. `docs/wikis/api.md` was folded
-  into the new site and removed.
-- Organized the sidebar around one page per Daraja endpoint
-  (`docs/endpoints/authentication.md`, `register-url.md`, `stk-push.md`,
-  `transaction-status.md`), each self-contained with its method signature,
-  validation rules, response DTO, and related callback/console command,
-  instead of splitting that information across generic "API Reference",
-  "Callbacks", and "Console Commands" pages.
+- Consolidated all documentation into a single `README.md` with a table of
+  contents and anchor-linked sections (Configuration, Usage, Endpoints —
+  Authentication / Register URLs / STK Push / Transaction Status — DTOs,
+  Security, Testing, Changelog). `docs/wikis/api.md` was folded in and
+  removed.
 
 ## [0.1.0] - 2026-06-19
 
