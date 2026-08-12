@@ -7,8 +7,8 @@ namespace LaravelMpesa\DTOs\Callbacks;
 final readonly class StkCallbackData
 {
     /**
-     * @param array<string, mixed> $metadata
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $metadata
+     * @param  array<string, mixed>  $payload
      */
     public function __construct(
         public string $merchantRequestId,
@@ -47,7 +47,7 @@ final readonly class StkCallbackData
     }
 
     /**
-     * @param array<string, mixed> $callback
+     * @param  array<string, mixed>  $callback
      * @return array<string, mixed>
      */
     private static function metadataFromCallback(array $callback): array
@@ -55,14 +55,14 @@ final readonly class StkCallbackData
         $callbackMetadata = $callback['CallbackMetadata'] ?? [];
         $items = is_array($callbackMetadata) ? ($callbackMetadata['Item'] ?? []) : [];
 
-        if (!is_array($items)) {
+        if (! is_array($items)) {
             return [];
         }
 
         $metadata = [];
 
         foreach ($items as $item) {
-            if (!is_array($item) || !isset($item['Name'])) {
+            if (! is_array($item) || ! isset($item['Name'])) {
                 continue;
             }
 

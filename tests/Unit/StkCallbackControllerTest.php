@@ -28,8 +28,7 @@ class StkCallbackControllerTest extends TestCase
             ->assertJsonPath('checkoutRequestId', 'ws_CO_14072026222032600702997218')
             ->assertJsonPath('resultCode', 0);
 
-        Event::assertDispatched(StkCallbackReceived::class, static fn(StkCallbackReceived $event): bool =>
-            $event->callback->merchantRequestId === 'ff3e-4fa4-abc0-8eb3aa92c0d998768'
+        Event::assertDispatched(StkCallbackReceived::class, static fn (StkCallbackReceived $event): bool => $event->callback->merchantRequestId === 'ff3e-4fa4-abc0-8eb3aa92c0d998768'
             && $event->callback->checkoutRequestId === 'ws_CO_14072026222032600702997218'
             && $event->callback->metadataValue('Amount') === 5
             && $event->callback->metadataValue('MpesaReceiptNumber') === 'UGEHJB6GMF'
@@ -52,8 +51,7 @@ class StkCallbackControllerTest extends TestCase
             ->assertJsonPath('resultCode', 1032);
 
         Event::assertDispatched(StkCallbackReceived::class);
-        Event::assertDispatched(StkCallbackFailed::class, static fn(StkCallbackFailed $event): bool =>
-            $event->callback->resultCode === 1032
+        Event::assertDispatched(StkCallbackFailed::class, static fn (StkCallbackFailed $event): bool => $event->callback->resultCode === 1032
             && $event->callback->resultDescription === 'Request Cancelled by user.'
             && $event->callback->metadata === []);
         Event::assertNotDispatched(StkCallbackSucceeded::class);
@@ -124,7 +122,7 @@ class StkCallbackControllerTest extends TestCase
 
     private function reloadCallbackRoutesFromConfig(): void
     {
-        $this->app['router']->setRoutes(new RouteCollection());
+        $this->app['router']->setRoutes(new RouteCollection);
 
         /** @var string $path */
         $path = realpath(__DIR__.'/../../routes/callbacks.php');

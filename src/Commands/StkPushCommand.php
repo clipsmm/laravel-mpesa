@@ -5,22 +5,25 @@ declare(strict_types=1);
 namespace LaravelMpesa\Commands;
 
 use Illuminate\Console\Command;
+use LaravelMpesa\Commands\Concerns\ReadsScalarOptions;
 use LaravelMpesa\MpesaSdk;
 use Throwable;
 
 class StkPushCommand extends Command
 {
+    use ReadsScalarOptions;
+
     protected $signature = 'mpesa:stk {--phone= : Customer phone number, for example 254712345678 or 0712345678} {--amount= : Amount to charge} {--ref= : Account reference} {--callback= : STK callback URL} {--description=Description : Payment description}';
 
     protected $description = 'Send an Mpesa STK push request.';
 
     public function handle(): int
     {
-        $phone = $this->normalizePhone((string) $this->option('phone'));
+        $phone = $this->normalizePhone($this->optionString('phone'));
         $amount = $this->parseAmount($this->option('amount'));
-        $ref = trim((string) $this->option('ref'));
-        $description = trim((string) $this->option('description')) ?: 'Description';
-        $callbackUrl = trim((string) ($this->option('callback') ?: config('mpesa.stk_callback_url', '')));
+        $ref = trim($this->optionString('ref'));
+        $description = trim($this->optionString('description')) ?: 'Description';
+        $callbackUrl = trim($this->optionString('callback') ?: (string) config('mpesa.stk_callback_url', ''));
 
         if ($phone === null) {
             $this->error('The --phone option must be a Kenyan Safaricom number such as 254712345678 or 0712345678.');
@@ -62,7 +65,7 @@ class StkPushCommand extends Command
 
         $this->line(json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '[]');
 
-        if (!$successful) {
+        if (! $successful) {
             $this->error('Mpesa STK push request failed.');
 
             return self::FAILURE;
@@ -94,7 +97,7 @@ class StkPushCommand extends Command
 
     private function parseAmount(mixed $amount): ?int
     {
-        if (!is_scalar($amount) || !preg_match('/^[1-9]\d*$/', trim((string) $amount))) {
+        if (! is_scalar($amount) || ! preg_match('/^[1-9]\d*$/', trim((string) $amount))) {
             return null;
         }
 

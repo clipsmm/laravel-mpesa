@@ -28,7 +28,7 @@ class RequestManagerTest extends TestCase
         $this->assertTrue($manager->isAuthenticated());
         Http::assertSent(fn ($request) => $request->hasHeader(
             'Authorization',
-            'Basic ' . base64_encode('test-key:test-secret')
+            'Basic '.base64_encode('test-key:test-secret')
         ));
     }
 

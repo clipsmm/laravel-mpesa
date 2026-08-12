@@ -37,7 +37,7 @@ return [
         'middleware' => ['api'],
         'path_prefix' => '/signal/ingress',
         'allowed_ips' => array_values(array_filter(array_map(
-            static fn(string $ip): string => trim($ip),
+            static fn (string $ip): string => trim($ip),
             explode(',', (string) env('MPESA_CALLBACK_ALLOWED_IPS', implode(',', $defaultCallbackAllowedIps))),
         ))),
         'routes' => [
@@ -88,6 +88,6 @@ return [
             'initiator_password' => env('MPESA_B2B_INITIATOR_PASSWORD'),
             'security_credential' => env('MPESA_B2B_SECURITY_CREDENTIAL'),
             'security_credential_cert' => env('MPESA_B2B_SECURITY_CREDENTIAL_CERT'),
-        ]
+        ],
     ],
 ];

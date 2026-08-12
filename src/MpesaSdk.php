@@ -18,13 +18,15 @@ class MpesaSdk
 
     /**
      * Create an SDK instance for a configured Mpesa application.
+     *
+     * @param  array<string, mixed>  $opts
      */
     public function __construct(?string $app = null, array $opts = [])
     {
         $this->app = $app ?: (string) config('mpesa.default');
         $applicationConfig = config("mpesa.apps.{$this->app}");
 
-        if (!is_array($applicationConfig)) {
+        if (! is_array($applicationConfig)) {
             throw new InvalidArgumentException("Mpesa application [{$this->app}] is not configured.");
         }
 

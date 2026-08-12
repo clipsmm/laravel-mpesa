@@ -12,14 +12,14 @@ trait ChecksCallbackIp
     {
         $allowedIps = config('mpesa.callbacks.allowed_ips', []);
 
-        if (!is_array($allowedIps) || $allowedIps === []) {
+        if (! is_array($allowedIps) || $allowedIps === []) {
             return false;
         }
 
         $requestIp = (string) $request->ip();
 
         foreach ($allowedIps as $allowedIp) {
-            if (!is_string($allowedIp)) {
+            if (! is_string($allowedIp)) {
                 continue;
             }
 
@@ -35,7 +35,7 @@ trait ChecksCallbackIp
 
     protected function ipMatchesCidr(string $ip, string $cidr): bool
     {
-        if (!str_contains($cidr, '/')) {
+        if (! str_contains($cidr, '/')) {
             return false;
         }
 
@@ -43,7 +43,7 @@ trait ChecksCallbackIp
         $ipLong = ip2long($ip);
         $subnetLong = ip2long($subnet);
 
-        if ($ipLong === false || $subnetLong === false || !ctype_digit($bits)) {
+        if ($ipLong === false || $subnetLong === false || ! ctype_digit($bits)) {
             return false;
         }
 

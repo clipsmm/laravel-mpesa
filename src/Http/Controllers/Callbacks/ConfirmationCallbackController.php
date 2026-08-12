@@ -16,7 +16,7 @@ class ConfirmationCallbackController
 
     public function __invoke(Request $request): JsonResponse
     {
-        if (!$this->requestIpAllowed($request)) {
+        if (! $this->requestIpAllowed($request)) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -48,7 +48,7 @@ class ConfirmationCallbackController
         $events = config('mpesa.callbacks.events', []);
         $event = is_array($events) ? ($events[$key] ?? null) : null;
 
-        if (!is_string($event) || trim($event) === '' || !class_exists($event)) {
+        if (! is_string($event) || trim($event) === '' || ! class_exists($event)) {
             return;
         }
 

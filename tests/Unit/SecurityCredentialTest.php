@@ -32,7 +32,7 @@ class SecurityCredentialTest extends TestCase
         openssl_pkey_export($privateKey, $privateKeyPem);
 
         self::$privateKeyPem = $privateKeyPem;
-        self::$certPath = tempnam(sys_get_temp_dir(), 'mpesa-cert-') . '.pem';
+        self::$certPath = tempnam(sys_get_temp_dir(), 'mpesa-cert-').'.pem';
         file_put_contents(self::$certPath, $certificatePem);
     }
 
@@ -70,7 +70,7 @@ class SecurityCredentialTest extends TestCase
         );
 
         Http::assertSent(function ($request) {
-            if (!str_contains($request->url(), '/mpesa/transactionstatus/v1/query')) {
+            if (! str_contains($request->url(), '/mpesa/transactionstatus/v1/query')) {
                 return false;
             }
 
@@ -144,7 +144,7 @@ class SecurityCredentialTest extends TestCase
     public function test_bundledCertificatesAreValidRsaPublicKeys(): void
     {
         foreach (['SandboxCertificate.cer', 'ProductionCertificate.cer'] as $filename) {
-            $path = dirname(__DIR__, 2) . '/certs/' . $filename;
+            $path = dirname(__DIR__, 2).'/certs/'.$filename;
 
             $this->assertFileExists($path);
 
@@ -180,7 +180,7 @@ class SecurityCredentialTest extends TestCase
         );
 
         Http::assertSent(function ($request) {
-            if (!str_contains($request->url(), '/mpesa/transactionstatus/v1/query')) {
+            if (! str_contains($request->url(), '/mpesa/transactionstatus/v1/query')) {
                 return false;
             }
 
@@ -213,7 +213,7 @@ class SecurityCredentialTest extends TestCase
         );
 
         Http::assertSent(function ($request) {
-            if (!str_contains($request->url(), '/mpesa/transactionstatus/v1/query')) {
+            if (! str_contains($request->url(), '/mpesa/transactionstatus/v1/query')) {
                 return false;
             }
 

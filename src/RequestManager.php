@@ -10,6 +10,7 @@ use RuntimeException;
 
 class RequestManager
 {
+    /** @var array<string, mixed> */
     protected array $config;
 
     protected ?string $accessToken = null;
@@ -20,6 +21,8 @@ class RequestManager
 
     /**
      * Create a request manager from an immutable configuration snapshot. Authentication is lazy.
+     *
+     * @param  array<string, mixed>  $config
      */
     public function __construct(array $config)
     {
@@ -39,13 +42,13 @@ class RequestManager
             ->timeout($this->timeout())
             ->get($this->getEndpoint('/oauth/v1/generate?grant_type=client_credentials'));
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             return false;
         }
 
         $data = $response->json();
 
-        if (!is_array($data) || !is_string($data['access_token'] ?? null)) {
+        if (! is_array($data) || ! is_string($data['access_token'] ?? null)) {
             throw new RuntimeException('Mpesa authentication returned an invalid response.');
         }
 
@@ -59,7 +62,7 @@ class RequestManager
     /**
      * Register HTTPS validation and confirmation callback URLs with Mpesa.
      *
-     * @return array{0: bool, 1: array}
+     * @return array{0: bool, 1: array<string, mixed>}
      */
     public function registerUrls(
         string $validationUrl,
@@ -80,7 +83,7 @@ class RequestManager
     /**
      * Send an STK Push to a Kenyan MSISDN.
      *
-     * @return array{0: bool, 1: array}
+     * @return array{0: bool, 1: array<string, mixed>}
      */
     public function stkPush(
         string $receiver,
@@ -105,7 +108,7 @@ class RequestManager
         $this->assertCallbackUrl($callbackUrl);
         $timestamp = date('YmdHis');
         $shortCode = $this->requiredConfig('shortcode');
-        $password = base64_encode($shortCode . $this->requiredConfig('passkey') . $timestamp);
+        $password = base64_encode($shortCode.$this->requiredConfig('passkey').$timestamp);
 
         return $this->send($this->getEndpoint('/mpesa/stkpush/v1/processrequest'), [
             'BusinessShortCode' => $shortCode,
@@ -126,7 +129,7 @@ class RequestManager
     /**
      * Query the status of a completed or initiated Mpesa transaction.
      *
-     * @return array{0: bool, 1: array}
+     * @return array{0: bool, 1: array<string, mixed>}
      */
     public function transactionStatus(
         string $identifier,
@@ -145,7 +148,7 @@ class RequestManager
             throw new InvalidArgumentException('Transaction status identifier is invalid.');
         }
 
-        if (!in_array($identifierType, ['1', '2', '3', '4'], true)) {
+        if (! in_array($identifierType, ['1', '2', '3', '4'], true)) {
             throw new InvalidArgumentException('Transaction status identifier type is invalid.');
         }
 
@@ -181,7 +184,7 @@ class RequestManager
 
         $host = $this->isLive() ? 'https://api.safaricom.co.ke' : 'https://sandbox.safaricom.co.ke';
 
-        return $host . '/' . ltrim($url, '/');
+        return $host.'/'.ltrim($url, '/');
     }
 
     /**
@@ -189,7 +192,7 @@ class RequestManager
      */
     public function isAuthenticated(): bool
     {
-        if (!$this->accessToken || !$this->authenticatedAt || !$this->expiresIn) {
+        if (! $this->accessToken || ! $this->authenticatedAt || ! $this->expiresIn) {
             return false;
         }
 
@@ -207,11 +210,12 @@ class RequestManager
     /**
      * Send an authenticated JSON request to Mpesa.
      *
-     * @return array{0: bool, 1: array}
+     * @param  array<string, mixed>  $payload
+     * @return array{0: bool, 1: array<string, mixed>}
      */
     private function send(string $url, array $payload): array
     {
-        if (!$this->isAuthenticated() && !$this->authenticate()) {
+        if (! $this->isAuthenticated() && ! $this->authenticate()) {
             throw new RuntimeException('Unable to authenticate with Mpesa.');
         }
 
@@ -233,7 +237,7 @@ class RequestManager
     {
         $value = $this->getConfig($key);
 
-        if (!is_string($value) || trim($value) === '') {
+        if (! is_string($value) || trim($value) === '') {
             throw new InvalidArgumentException("Missing Mpesa configuration: {$key}.");
         }
 
@@ -287,7 +291,7 @@ class RequestManager
      */
     private function encryptSecurityCredential(string $password, string $certPath): string
     {
-        if (!is_file($certPath) || !is_readable($certPath)) {
+        if (! is_file($certPath) || ! is_readable($certPath)) {
             throw new RuntimeException("Mpesa security credential certificate is missing or unreadable: {$certPath}");
         }
 
@@ -298,7 +302,7 @@ class RequestManager
             throw new RuntimeException('Unable to read the Mpesa security credential certificate.');
         }
 
-        if (!openssl_public_encrypt($password, $encrypted, $publicKey, OPENSSL_PKCS1_PADDING)) {
+        if (! openssl_public_encrypt($password, $encrypted, $publicKey, OPENSSL_PKCS1_PADDING)) {
             throw new RuntimeException('Unable to encrypt the Mpesa security credential.');
         }
 
@@ -309,11 +313,11 @@ class RequestManager
     {
         $scheme = parse_url($url, PHP_URL_SCHEME);
 
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        if (! filter_var($url, FILTER_VALIDATE_URL)) {
             throw new InvalidArgumentException('Mpesa callback URL is invalid.');
         }
 
-        if ($scheme !== 'https' && ($this->isLive() || !$this->getConfig('allow_insecure_callbacks', false))) {
+        if ($scheme !== 'https' && ($this->isLive() || ! $this->getConfig('allow_insecure_callbacks', false))) {
             throw new InvalidArgumentException('Mpesa callback URL must use HTTPS.');
         }
     }

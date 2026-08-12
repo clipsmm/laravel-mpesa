@@ -10,8 +10,8 @@ function main(array $arguments): int
     try {
         $options = parseArguments($arguments);
         $root = dirname(__DIR__);
-        $composerPath = $root . '/composer.json';
-        $changelogPath = $root . '/CHANGELOG.md';
+        $composerPath = $root.'/composer.json';
+        $changelogPath = $root.'/CHANGELOG.md';
         $composer = readComposer($composerPath);
         $currentVersion = currentVersion($composer, $root);
         $nextVersion = bumpVersion($currentVersion, $options['type']);
@@ -35,7 +35,7 @@ function main(array $arguments): int
         assertCleanWorkingTree($root);
         assertTagDoesNotExist($root, $nextVersion);
 
-        if (!$options['yes'] && !confirm("Create local release v{$nextVersion}?")) {
+        if (! $options['yes'] && ! confirm("Create local release v{$nextVersion}?")) {
             output('Release cancelled.');
 
             return 0;
@@ -67,7 +67,7 @@ function main(array $arguments): int
 
         return 0;
     } catch (Throwable $exception) {
-        fwrite(STDERR, 'Release failed: ' . $exception->getMessage() . PHP_EOL);
+        fwrite(STDERR, 'Release failed: '.$exception->getMessage().PHP_EOL);
 
         return 1;
     }
@@ -77,7 +77,7 @@ function parseArguments(array $arguments): array
 {
     $type = $arguments[1] ?? null;
 
-    if (!is_string($type) || !in_array($type, RELEASE_TYPES, true)) {
+    if (! is_string($type) || ! in_array($type, RELEASE_TYPES, true)) {
         throw new InvalidArgumentException(
             'Usage: php bin/release.php <patch|minor|major> [--dry-run] [--yes] [--push]'
         );
@@ -87,7 +87,7 @@ function parseArguments(array $arguments): array
     $allowedFlags = ['--dry-run', '--yes', '--push'];
 
     foreach ($flags as $flag) {
-        if (!in_array($flag, $allowedFlags, true)) {
+        if (! in_array($flag, $allowedFlags, true)) {
             throw new InvalidArgumentException("Unknown option: {$flag}");
         }
     }
@@ -102,13 +102,13 @@ function parseArguments(array $arguments): array
 
 function readComposer(string $path): array
 {
-    if (!is_file($path)) {
+    if (! is_file($path)) {
         throw new RuntimeException("Missing composer manifest: {$path}");
     }
 
     $composer = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
 
-    if (!is_array($composer)) {
+    if (! is_array($composer)) {
         throw new RuntimeException('composer.json must contain a JSON object.');
     }
 
@@ -148,9 +148,9 @@ function bumpVersion(string $version, string $type): string
     [$major, $minor, $patch] = array_map('intval', explode('.', $version));
 
     return match ($type) {
-        'major' => ($major + 1) . '.0.0',
-        'minor' => $major . '.' . ($minor + 1) . '.0',
-        'patch' => $major . '.' . $minor . '.' . ($patch + 1),
+        'major' => ($major + 1).'.0.0',
+        'minor' => $major.'.'.($minor + 1).'.0',
+        'patch' => $major.'.'.$minor.'.'.($patch + 1),
         default => throw new InvalidArgumentException("Unsupported release type: {$type}"),
     };
 }
@@ -164,13 +164,13 @@ function assertSemanticVersion(string $version): void
 
 function readChangelog(string $path): string
 {
-    if (!is_file($path)) {
+    if (! is_file($path)) {
         throw new RuntimeException('CHANGELOG.md is required before creating a release.');
     }
 
     $content = file_get_contents($path);
 
-    if (!is_string($content) || !str_contains($content, '## [Unreleased]')) {
+    if (! is_string($content) || ! str_contains($content, '## [Unreleased]')) {
         throw new RuntimeException('CHANGELOG.md must contain an ## [Unreleased] section.');
     }
 
@@ -183,10 +183,10 @@ function prepareChangelog(
     string $nextVersion,
     string $repositoryUrl
 ): string {
-    $heading = "## [Unreleased]\n\n## [{$nextVersion}] - " . date('Y-m-d');
+    $heading = "## [Unreleased]\n\n## [{$nextVersion}] - ".date('Y-m-d');
     $updated = preg_replace('/## \[Unreleased\]/', $heading, $content, 1, $count);
 
-    if (!is_string($updated) || $count !== 1) {
+    if (! is_string($updated) || $count !== 1) {
         throw new RuntimeException('Unable to prepare the Unreleased changelog section.');
     }
 
@@ -195,15 +195,15 @@ function prepareChangelog(
     if (preg_match('/^\[Unreleased\]:.*$/m', $updated) === 1) {
         $updated = (string) preg_replace('/^\[Unreleased\]:.*$/m', $unreleasedLink, $updated, 1);
     } else {
-        $updated = rtrim($updated) . "\n\n{$unreleasedLink}\n";
+        $updated = rtrim($updated)."\n\n{$unreleasedLink}\n";
     }
 
     $versionLink = version_compare($currentVersion, '0.0.0', '>')
         ? "[{$nextVersion}]: {$repositoryUrl}/compare/v{$currentVersion}...v{$nextVersion}"
         : "[{$nextVersion}]: {$repositoryUrl}/releases/tag/v{$nextVersion}";
 
-    if (preg_match('/^\[' . preg_quote($nextVersion, '/') . '\]:/m', $updated) !== 1) {
-        $updated = rtrim($updated) . "\n{$versionLink}\n";
+    if (preg_match('/^\['.preg_quote($nextVersion, '/').'\]:/m', $updated) !== 1) {
+        $updated = rtrim($updated)."\n{$versionLink}\n";
     }
 
     return $updated;
@@ -243,7 +243,7 @@ function runGit(string $root, array $arguments): string
 {
     $command = array_merge(['git', '-C', $root], $arguments);
     $escaped = implode(' ', array_map('escapeshellarg', $command));
-    exec($escaped . ' 2>&1', $output, $status);
+    exec($escaped.' 2>&1', $output, $status);
 
     if ($status !== 0) {
         throw new RuntimeException(implode(PHP_EOL, $output));
@@ -254,7 +254,7 @@ function runGit(string $root, array $arguments): string
 
 function writeJson(string $path, array $data): void
 {
-    writeFile($path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL);
+    writeFile($path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR).PHP_EOL);
 }
 
 function writeFile(string $path, string $content): void
@@ -274,7 +274,7 @@ function confirm(string $question): bool
 
 function output(string $message): void
 {
-    fwrite(STDOUT, $message . PHP_EOL);
+    fwrite(STDOUT, $message.PHP_EOL);
 }
 
 exit(main($argv));

@@ -25,8 +25,7 @@ class ConfirmationCallbackControllerTest extends TestCase
             ->assertJsonPath('ResultCode', 0)
             ->assertJsonPath('ResultDesc', 'Success');
 
-        Event::assertDispatched(C2bConfirmationReceived::class, static fn(C2bConfirmationReceived $event): bool =>
-            $event->confirmation->transId === 'RKTQDM7108'
+        Event::assertDispatched(C2bConfirmationReceived::class, static fn (C2bConfirmationReceived $event): bool => $event->confirmation->transId === 'RKTQDM7108'
             && $event->confirmation->transAmount === 10.00
             && $event->confirmation->billRefNumber === 'invoice008'
             && $event->confirmation->msisdn === '254712345678'
@@ -94,7 +93,7 @@ class ConfirmationCallbackControllerTest extends TestCase
 
     private function reloadCallbackRoutesFromConfig(): void
     {
-        $this->app['router']->setRoutes(new RouteCollection());
+        $this->app['router']->setRoutes(new RouteCollection);
 
         /** @var string $path */
         $path = realpath(__DIR__.'/../../routes/callbacks.php');

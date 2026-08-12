@@ -55,6 +55,20 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - A stale `tests/mocks` PSR-4 autoload entry in `composer.json` pointing at a
   nonexistent directory.
 
+### Dev tooling
+
+- Added Larastan (PHPStan level 8) and Laravel Pint, with `composer analyse`,
+  `composer lint`, `composer format`, and an aggregate `composer check`.
+  Fixed the resulting findings across the codebase (missing array-shape
+  docblocks, unguarded `(string)`/`(int)` casts on `mixed` console-option and
+  config values) rather than suppressing them, and reformatted the whole
+  source/test tree with Pint. `pint.json` disables `php_unit_method_casing`
+  to preserve this codebase's intentional `test_snakeCase` + `#[Test]`
+  convention.
+- Added `.github/workflows/ci.yml`: a PHPUnit matrix (PHP 8.2/8.3/8.4, plus a
+  `prefer-lowest` run), Pint, PHPStan, and `composer audit`, on every push and
+  pull request to `main`/`master`.
+
 ### Docs
 
 - Replaced the single long-form README with a topic-per-page documentation

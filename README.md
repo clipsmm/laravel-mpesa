@@ -1,5 +1,7 @@
 # Laravel Mpesa
 
+[![CI](https://github.com/clipsmm/laravel-mpesa/actions/workflows/ci.yml/badge.svg)](https://github.com/clipsmm/laravel-mpesa/actions/workflows/ci.yml)
+
 Laravel integration for Safaricom Daraja: OAuth authentication, C2B callback
 URL registration, M-Pesa Express STK Push, and Transaction Status queries —
 direct to Safaricom, no intermediary gateway.

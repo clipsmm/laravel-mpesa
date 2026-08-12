@@ -5,23 +5,26 @@ declare(strict_types=1);
 namespace LaravelMpesa\Commands;
 
 use Illuminate\Console\Command;
+use LaravelMpesa\Commands\Concerns\ReadsScalarOptions;
 use LaravelMpesa\MpesaSdk;
 use Throwable;
 
 class TransactionStatusCommand extends Command
 {
+    use ReadsScalarOptions;
+
     protected $signature = 'mpesa:status {--receipt= : Mpesa receipt number} {--conversationId= : Provider conversation or originator conversation ID} {--result= : Result callback URL} {--timeout= : Timeout callback URL} {--remarks=Transaction status query : Query remarks} {--occasion=TransactionStatus : Query occasion}';
 
     protected $description = 'Query Mpesa transaction status.';
 
     public function handle(): int
     {
-        $receipt = trim((string) $this->option('receipt'));
-        $conversationId = trim((string) $this->option('conversationId'));
-        $resultUrl = trim((string) ($this->option('result') ?: config('mpesa.transaction_status_result_url', '')));
-        $timeoutUrl = trim((string) ($this->option('timeout') ?: config('mpesa.transaction_status_timeout_url', '')));
-        $remarks = trim((string) $this->option('remarks')) ?: 'Transaction status query';
-        $occasion = trim((string) $this->option('occasion')) ?: 'TransactionStatus';
+        $receipt = trim($this->optionString('receipt'));
+        $conversationId = trim($this->optionString('conversationId'));
+        $resultUrl = trim($this->optionString('result') ?: (string) config('mpesa.transaction_status_result_url', ''));
+        $timeoutUrl = trim($this->optionString('timeout') ?: (string) config('mpesa.transaction_status_timeout_url', ''));
+        $remarks = trim($this->optionString('remarks')) ?: 'Transaction status query';
+        $occasion = trim($this->optionString('occasion')) ?: 'TransactionStatus';
 
         if (($receipt === '' && $conversationId === '') || ($receipt !== '' && $conversationId !== '')) {
             $this->error('Provide exactly one of --receipt or --conversationId.');
@@ -58,7 +61,7 @@ class TransactionStatusCommand extends Command
 
         $this->line(json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '[]');
 
-        if (!$successful) {
+        if (! $successful) {
             $this->error('Mpesa transaction status query failed.');
 
             return self::FAILURE;
