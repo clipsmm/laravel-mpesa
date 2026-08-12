@@ -6,12 +6,11 @@ namespace LaravelMpesa;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
-use LaravelMpesa\Commands\TransactionStatusCommand;
 use LaravelMpesa\Commands\StkPushCommand;
+use LaravelMpesa\Commands\TransactionStatusCommand;
 
 class MpesaServiceProvider extends ServiceProvider
 {
-
     /**
      * Package name.
      *
@@ -49,10 +48,10 @@ class MpesaServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        if (!Str::contains($this->app->version(), 'Lumen')) {
+        if (! Str::contains($this->app->version(), 'Lumen')) {
             $this->mergeConfigFrom(__DIR__.'/../config/mpesa.php', 'mpesa');
         }
 
-        $this->app->singleton(MpesaSdk::class, fn () => new MpesaSdk());
+        $this->app->singleton(MpesaSdk::class, fn () => new MpesaSdk);
     }
 }

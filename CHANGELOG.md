@@ -7,6 +7,81 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- Typed response DTOs: `StkPushResponse`, `TransactionStatusResponse`, and
+  `RegisterUrlResponse`, alongside the existing `StkCallbackData`.
+- `security_credential` and `security_credential_cert` configuration keys per
+  application, and a documented `Initiator credentials and SecurityCredential`
+  section in the README.
+- `MpesaSdk` instance methods (`authenticate`, `isAuthenticated`,
+  `registerUrls`, `stkPush`, `transactionStatus`, `getEndpoint`, `app`,
+  `requestManager`) so the `Mpesa` facade can proxy to them.
+- Bundled Safaricom's public `SecurityCredential` certificates
+  (`certs/SandboxCertificate.cer`, `certs/ProductionCertificate.cer`) — they
+  are public and identical for every integration, so `security_credential_cert`
+  is no longer required; it now only overrides the bundled default.
+- A C2B confirmation callback endpoint (`POST /signal/ingress/echo` by
+  default): `ConfirmationCallbackController`, a `C2bConfirmationData` DTO
+  parsed from Safaricom's documented flat Confirmation payload (`TransID`,
+  `TransAmount`, `MSISDN`, `BillRefNumber`, etc. — distinct from the STK
+  callback's nested `Body.stkCallback` shape), and a `C2bConfirmationReceived`
+  event. Configured the same way as the STK callback, under
+  `mpesa.callbacks.routes.confirmation` / `.controllers.confirmation` /
+  `.events.c2b_confirmation_received`. C2B *validation* remains unimplemented
+  — it's an opt-in Safaricom feature most integrations don't enable.
+- Extracted the STK callback controller's IP-allowlist logic into a
+  `ChecksCallbackIp` trait, shared with the new confirmation controller.
+
+### Fixed
+
+- `transactionStatus()` now sends `SecurityCredential` RSA-encrypted with the
+  configured Safaricom public certificate instead of the plaintext initiator
+  password, which Daraja rejects.
+- `MpesaSdk`'s constructor now merges the package's shared configuration
+  (timeouts, `allow_insecure_callbacks`) the same way `MpesaSdk::instance()`
+  already did.
+- The `Mpesa` facade now resolves to usable methods instead of throwing
+  `BadMethodCallException` on every call.
+
+### Changed
+
+- `b2b` now has its own independent `MPESA_B2B_*` environment variables
+  instead of silently reusing `c2b`'s credentials.
+- `RequestManager::__construct()` dropped the unused `bool $auth` parameter.
+
+### Removed
+
+- A stale `tests/mocks` PSR-4 autoload entry in `composer.json` pointing at a
+  nonexistent directory.
+
+### Dev tooling
+
+- Added Larastan (PHPStan level 8) and Laravel Pint, with `composer analyse`,
+  `composer lint`, `composer format`, and an aggregate `composer check`.
+  Fixed the resulting findings across the codebase (missing array-shape
+  docblocks, unguarded `(string)`/`(int)` casts on `mixed` console-option and
+  config values) rather than suppressing them, and reformatted the whole
+  source/test tree with Pint. `pint.json` disables `php_unit_method_casing`
+  to preserve this codebase's intentional `test_snakeCase` + `#[Test]`
+  convention.
+- Added `.github/workflows/ci.yml`: a PHPUnit matrix (PHP 8.2/8.3/8.4, plus a
+  `prefer-lowest` run), Pint, PHPStan, and `composer audit`, on every push and
+  pull request to `main`/`master`.
+
+### Docs
+
+- Replaced the single long-form README with a topic-per-page documentation
+  site under `docs/` (Docsify, served via GitHub Pages). The root README is
+  now a short landing page linking into it. `docs/wikis/api.md` was folded
+  into the new site and removed.
+- Organized the sidebar around one page per Daraja endpoint
+  (`docs/endpoints/authentication.md`, `register-url.md`, `stk-push.md`,
+  `transaction-status.md`), each self-contained with its method signature,
+  validation rules, response DTO, and related callback/console command,
+  instead of splitting that information across generic "API Reference",
+  "Callbacks", and "Console Commands" pages.
+
 ## [0.1.0] - 2026-06-19
 
 ### Added

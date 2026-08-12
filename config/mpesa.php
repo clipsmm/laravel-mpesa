@@ -1,8 +1,10 @@
 <?php
 
+use LaravelMpesa\Events\Callbacks\C2bConfirmationReceived;
 use LaravelMpesa\Events\Callbacks\StkCallbackFailed;
 use LaravelMpesa\Events\Callbacks\StkCallbackReceived;
 use LaravelMpesa\Events\Callbacks\StkCallbackSucceeded;
+use LaravelMpesa\Http\Controllers\Callbacks\ConfirmationCallbackController;
 use LaravelMpesa\Http\Controllers\Callbacks\StkCallbackController;
 
 $defaultCallbackAllowedIps = app()->environment(['local', 'testing'])
@@ -35,19 +37,22 @@ return [
         'middleware' => ['api'],
         'path_prefix' => '/signal/ingress',
         'allowed_ips' => array_values(array_filter(array_map(
-            static fn(string $ip): string => trim($ip),
+            static fn (string $ip): string => trim($ip),
             explode(',', (string) env('MPESA_CALLBACK_ALLOWED_IPS', implode(',', $defaultCallbackAllowedIps))),
         ))),
         'routes' => [
             'stk' => null,
+            'confirmation' => null,
         ],
         'controllers' => [
             'stk' => StkCallbackController::class,
+            'confirmation' => ConfirmationCallbackController::class,
         ],
         'events' => [
             'stk_received' => StkCallbackReceived::class,
             'stk_succeeded' => StkCallbackSucceeded::class,
             'stk_failed' => StkCallbackFailed::class,
+            'c2b_confirmation_received' => C2bConfirmationReceived::class,
         ],
     ],
     'apps' => [
@@ -59,6 +64,8 @@ return [
             'passkey' => env('MPESA_PASSKEY'),
             'initiator_name' => env('MPESA_INITIATOR_NAME'),
             'initiator_password' => env('MPESA_INITIATOR_PASSWORD'),
+            'security_credential' => env('MPESA_SECURITY_CREDENTIAL'),
+            'security_credential_cert' => env('MPESA_SECURITY_CREDENTIAL_CERT'),
         ],
         'b2c' => [
             'status' => env('MPESA_API_STATUS'),
@@ -68,15 +75,19 @@ return [
             'passkey' => env('MPESA_B2C_PASSKEY'),
             'initiator_name' => env('MPESA_B2C_INITIATOR_NAME'),
             'initiator_password' => env('MPESA_B2C_INITIATOR_PASSWORD'),
+            'security_credential' => env('MPESA_B2C_SECURITY_CREDENTIAL'),
+            'security_credential_cert' => env('MPESA_B2C_SECURITY_CREDENTIAL_CERT'),
         ],
         'b2b' => [
             'status' => env('MPESA_API_STATUS'),
-            'consumer_key' => env('MPESA_CONSUMER_KEY'),
-            'consumer_secret' => env('MPESA_CONSUMER_SECRET'),
-            'shortcode' => env('MPESA_SHORTCODE'),
-            'passkey' => env('MPESA_PASSKEY'),
-            'initiator_name' => env('MPESA_INITIATOR_NAME'),
-            'initiator_password' => env('MPESA_INITIATOR_PASSWORD'),
-        ]
+            'consumer_key' => env('MPESA_B2B_CONSUMER_KEY'),
+            'consumer_secret' => env('MPESA_B2B_CONSUMER_SECRET'),
+            'shortcode' => env('MPESA_B2B_SHORTCODE'),
+            'passkey' => env('MPESA_B2B_PASSKEY'),
+            'initiator_name' => env('MPESA_B2B_INITIATOR_NAME'),
+            'initiator_password' => env('MPESA_B2B_INITIATOR_PASSWORD'),
+            'security_credential' => env('MPESA_B2B_SECURITY_CREDENTIAL'),
+            'security_credential_cert' => env('MPESA_B2B_SECURITY_CREDENTIAL_CERT'),
+        ],
     ],
 ];

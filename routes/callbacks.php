@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use LaravelMpesa\Http\Controllers\Callbacks\ConfirmationCallbackController;
 use LaravelMpesa\Http\Controllers\Callbacks\StkCallbackController;
 
 $callbacks = config('mpesa.callbacks', []);
@@ -39,4 +40,9 @@ Route::middleware(is_array($middleware) ? $middleware : [])
             $resolvePath('stk', 'pulse'),
             $resolveController('stk', StkCallbackController::class),
         )->name('mpesa.callbacks.stk');
+
+        Route::post(
+            $resolvePath('confirmation', 'echo'),
+            $resolveController('confirmation', ConfirmationCallbackController::class),
+        )->name('mpesa.callbacks.confirmation');
     });

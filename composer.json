@@ -9,6 +9,7 @@
     "type": "library",
     "license": "MIT",
     "version": "0.1.0",
+    "homepage": "https://clipsmm.github.io/laravel-mpesa/",
     "authors": [
         {
             "name": "Cliff Mitamita",
@@ -27,12 +28,13 @@
     "require-dev": {
         "mockery/mockery": "^1.6.12",
         "orchestra/testbench": "^10.0|^11.0",
-        "phpunit/phpunit": "^10.5.62|^11.5.50|^12.5.8|^13.1"
+        "phpunit/phpunit": "^10.5.62|^11.5.50|^12.5.8|^13.1",
+        "larastan/larastan": "^3.10",
+        "laravel/pint": "^1.30"
     },
     "autoload": {
         "psr-4": {
-            "LaravelMpesa\\": "src/",
-            "LaravelMpesa\\Mocks\\": "tests/mocks"
+            "LaravelMpesa\\": "src/"
         }
     },
     "autoload-dev": {
@@ -42,6 +44,14 @@
     },
     "scripts": {
         "test": "vendor/bin/phpunit",
+        "lint": "vendor/bin/pint --test",
+        "format": "vendor/bin/pint",
+        "analyse": "vendor/bin/phpstan analyse",
+        "check": [
+            "@lint",
+            "@analyse",
+            "@test"
+        ],
         "release": "php bin/release.php",
         "release:patch": "php bin/release.php patch",
         "release:minor": "php bin/release.php minor",

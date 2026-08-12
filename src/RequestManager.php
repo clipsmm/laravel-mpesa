@@ -10,6 +10,7 @@ use RuntimeException;
 
 class RequestManager
 {
+    /** @var array<string, mixed> */
     protected array $config;
 
     protected ?string $accessToken = null;
@@ -19,9 +20,11 @@ class RequestManager
     protected ?int $authenticatedAt = null;
 
     /**
-     * Create a request manager. Authentication remains lazy for backward compatibility.
+     * Create a request manager from an immutable configuration snapshot. Authentication is lazy.
+     *
+     * @param  array<string, mixed>  $config
      */
-    public function __construct(array $config, bool $auth = true)
+    public function __construct(array $config)
     {
         $this->config = $config;
     }
@@ -39,13 +42,13 @@ class RequestManager
             ->timeout($this->timeout())
             ->get($this->getEndpoint('/oauth/v1/generate?grant_type=client_credentials'));
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             return false;
         }
 
         $data = $response->json();
 
-        if (!is_array($data) || !is_string($data['access_token'] ?? null)) {
+        if (! is_array($data) || ! is_string($data['access_token'] ?? null)) {
             throw new RuntimeException('Mpesa authentication returned an invalid response.');
         }
 
@@ -59,7 +62,7 @@ class RequestManager
     /**
      * Register HTTPS validation and confirmation callback URLs with Mpesa.
      *
-     * @return array{0: bool, 1: array}
+     * @return array{0: bool, 1: array<string, mixed>}
      */
     public function registerUrls(
         string $validationUrl,
@@ -80,7 +83,7 @@ class RequestManager
     /**
      * Send an STK Push to a Kenyan MSISDN.
      *
-     * @return array{0: bool, 1: array}
+     * @return array{0: bool, 1: array<string, mixed>}
      */
     public function stkPush(
         string $receiver,
@@ -105,7 +108,7 @@ class RequestManager
         $this->assertCallbackUrl($callbackUrl);
         $timestamp = date('YmdHis');
         $shortCode = $this->requiredConfig('shortcode');
-        $password = base64_encode($shortCode . $this->requiredConfig('passkey') . $timestamp);
+        $password = base64_encode($shortCode.$this->requiredConfig('passkey').$timestamp);
 
         return $this->send($this->getEndpoint('/mpesa/stkpush/v1/processrequest'), [
             'BusinessShortCode' => $shortCode,
@@ -126,7 +129,7 @@ class RequestManager
     /**
      * Query the status of a completed or initiated Mpesa transaction.
      *
-     * @return array{0: bool, 1: array}
+     * @return array{0: bool, 1: array<string, mixed>}
      */
     public function transactionStatus(
         string $identifier,
@@ -145,7 +148,7 @@ class RequestManager
             throw new InvalidArgumentException('Transaction status identifier is invalid.');
         }
 
-        if (!in_array($identifierType, ['1', '2', '3', '4'], true)) {
+        if (! in_array($identifierType, ['1', '2', '3', '4'], true)) {
             throw new InvalidArgumentException('Transaction status identifier type is invalid.');
         }
 
@@ -158,7 +161,7 @@ class RequestManager
 
         return $this->send($this->getEndpoint('/mpesa/transactionstatus/v1/query'), [
             'Initiator' => $this->requiredConfig('initiator_name'),
-            'SecurityCredential' => $this->requiredConfig('initiator_password'),
+            'SecurityCredential' => $this->securityCredential(),
             'CommandID' => 'TransactionStatusQuery',
             'TransactionID' => $identifier,
             'PartyA' => $this->requiredConfig('shortcode'),
@@ -181,7 +184,7 @@ class RequestManager
 
         $host = $this->isLive() ? 'https://api.safaricom.co.ke' : 'https://sandbox.safaricom.co.ke';
 
-        return $host . '/' . ltrim($url, '/');
+        return $host.'/'.ltrim($url, '/');
     }
 
     /**
@@ -189,7 +192,7 @@ class RequestManager
      */
     public function isAuthenticated(): bool
     {
-        if (!$this->accessToken || !$this->authenticatedAt || !$this->expiresIn) {
+        if (! $this->accessToken || ! $this->authenticatedAt || ! $this->expiresIn) {
             return false;
         }
 
@@ -207,11 +210,12 @@ class RequestManager
     /**
      * Send an authenticated JSON request to Mpesa.
      *
-     * @return array{0: bool, 1: array}
+     * @param  array<string, mixed>  $payload
+     * @return array{0: bool, 1: array<string, mixed>}
      */
     private function send(string $url, array $payload): array
     {
-        if (!$this->isAuthenticated() && !$this->authenticate()) {
+        if (! $this->isAuthenticated() && ! $this->authenticate()) {
             throw new RuntimeException('Unable to authenticate with Mpesa.');
         }
 
@@ -233,22 +237,87 @@ class RequestManager
     {
         $value = $this->getConfig($key);
 
-        if (!is_string($value) || trim($value) === '') {
+        if (! is_string($value) || trim($value) === '') {
             throw new InvalidArgumentException("Missing Mpesa configuration: {$key}.");
         }
 
         return $value;
     }
 
+    /**
+     * Resolve the Daraja SecurityCredential: an explicit override, or the
+     * initiator password encrypted with a Safaricom public certificate.
+     * Daraja rejects a plaintext initiator password.
+     */
+    private function securityCredential(): string
+    {
+        $override = $this->getConfig('security_credential');
+
+        if (is_string($override) && trim($override) !== '') {
+            return $override;
+        }
+
+        return $this->encryptSecurityCredential(
+            $this->requiredConfig('initiator_password'),
+            $this->securityCredentialCertPath(),
+        );
+    }
+
+    /**
+     * Resolve the certificate used to encrypt SecurityCredential: an
+     * explicitly configured path, or the certificate this package bundles
+     * for the app's live/sandbox status. Safaricom's sandbox and production
+     * certificates are public and identical for every integration, so the
+     * bundled copies work out of the box; `security_credential_cert` remains
+     * available to override them if Safaricom rotates one before a package
+     * update ships.
+     */
+    private function securityCredentialCertPath(): string
+    {
+        $configured = $this->getConfig('security_credential_cert');
+
+        if (is_string($configured) && trim($configured) !== '') {
+            return $configured;
+        }
+
+        $filename = $this->isLive() ? 'ProductionCertificate.cer' : 'SandboxCertificate.cer';
+
+        return dirname(__DIR__).'/certs/'.$filename;
+    }
+
+    /**
+     * RSA-encrypt (PKCS#1) a value with Safaricom's sandbox or production
+     * public certificate, as required for the SecurityCredential field.
+     */
+    private function encryptSecurityCredential(string $password, string $certPath): string
+    {
+        if (! is_file($certPath) || ! is_readable($certPath)) {
+            throw new RuntimeException("Mpesa security credential certificate is missing or unreadable: {$certPath}");
+        }
+
+        $certificate = (string) file_get_contents($certPath);
+        $publicKey = openssl_pkey_get_public($certificate);
+
+        if ($publicKey === false) {
+            throw new RuntimeException('Unable to read the Mpesa security credential certificate.');
+        }
+
+        if (! openssl_public_encrypt($password, $encrypted, $publicKey, OPENSSL_PKCS1_PADDING)) {
+            throw new RuntimeException('Unable to encrypt the Mpesa security credential.');
+        }
+
+        return base64_encode($encrypted);
+    }
+
     private function assertCallbackUrl(string $url): void
     {
         $scheme = parse_url($url, PHP_URL_SCHEME);
 
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        if (! filter_var($url, FILTER_VALIDATE_URL)) {
             throw new InvalidArgumentException('Mpesa callback URL is invalid.');
         }
 
-        if ($scheme !== 'https' && ($this->isLive() || !$this->getConfig('allow_insecure_callbacks', false))) {
+        if ($scheme !== 'https' && ($this->isLive() || ! $this->getConfig('allow_insecure_callbacks', false))) {
             throw new InvalidArgumentException('Mpesa callback URL must use HTTPS.');
         }
     }
