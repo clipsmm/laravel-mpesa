@@ -9,6 +9,7 @@
     "type": "library",
     "license": "MIT",
     "version": "0.1.0",
+    "homepage": "https://clipsmm.github.io/laravel-mpesa/",
     "authors": [
         {
             "name": "Cliff Mitamita",
@@ -31,8 +32,7 @@
     },
     "autoload": {
         "psr-4": {
-            "LaravelMpesa\\": "src/",
-            "LaravelMpesa\\Mocks\\": "tests/mocks"
+            "LaravelMpesa\\": "src/"
         }
     },
     "autoload-dev": {

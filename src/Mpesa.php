@@ -20,8 +20,6 @@ class Mpesa extends Facade
      */
     protected static function getFacadeAccessor(): string
     {
-        self::clearResolvedInstance(MpesaSdk::class);
-
         return MpesaSdk::class;
     }
 }

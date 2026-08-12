@@ -19,9 +19,9 @@ class RequestManager
     protected ?int $authenticatedAt = null;
 
     /**
-     * Create a request manager. Authentication remains lazy for backward compatibility.
+     * Create a request manager from an immutable configuration snapshot. Authentication is lazy.
      */
-    public function __construct(array $config, bool $auth = true)
+    public function __construct(array $config)
     {
         $this->config = $config;
     }
@@ -158,7 +158,7 @@ class RequestManager
 
         return $this->send($this->getEndpoint('/mpesa/transactionstatus/v1/query'), [
             'Initiator' => $this->requiredConfig('initiator_name'),
-            'SecurityCredential' => $this->requiredConfig('initiator_password'),
+            'SecurityCredential' => $this->securityCredential(),
             'CommandID' => 'TransactionStatusQuery',
             'TransactionID' => $identifier,
             'PartyA' => $this->requiredConfig('shortcode'),
@@ -238,6 +238,49 @@ class RequestManager
         }
 
         return $value;
+    }
+
+    /**
+     * Resolve the Daraja SecurityCredential: an explicit override, or the
+     * initiator password encrypted with the configured Safaricom public
+     * certificate. Daraja rejects a plaintext initiator password.
+     */
+    private function securityCredential(): string
+    {
+        $override = $this->getConfig('security_credential');
+
+        if (is_string($override) && trim($override) !== '') {
+            return $override;
+        }
+
+        return $this->encryptSecurityCredential(
+            $this->requiredConfig('initiator_password'),
+            $this->requiredConfig('security_credential_cert'),
+        );
+    }
+
+    /**
+     * RSA-encrypt (PKCS#1) a value with Safaricom's sandbox or production
+     * public certificate, as required for the SecurityCredential field.
+     */
+    private function encryptSecurityCredential(string $password, string $certPath): string
+    {
+        if (!is_file($certPath) || !is_readable($certPath)) {
+            throw new RuntimeException("Mpesa security credential certificate is missing or unreadable: {$certPath}");
+        }
+
+        $certificate = (string) file_get_contents($certPath);
+        $publicKey = openssl_pkey_get_public($certificate);
+
+        if ($publicKey === false) {
+            throw new RuntimeException('Unable to read the Mpesa security credential certificate.');
+        }
+
+        if (!openssl_public_encrypt($password, $encrypted, $publicKey, OPENSSL_PKCS1_PADDING)) {
+            throw new RuntimeException('Unable to encrypt the Mpesa security credential.');
+        }
+
+        return base64_encode($encrypted);
     }
 
     private function assertCallbackUrl(string $url): void
