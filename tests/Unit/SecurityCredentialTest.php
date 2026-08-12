@@ -139,4 +139,85 @@ class SecurityCredentialTest extends TestCase
         Http::assertSent(fn ($request) => str_contains($request->url(), '/mpesa/transactionstatus/v1/query')
             && $request['SecurityCredential'] === 'precomputed-credential');
     }
+
+    #[Test]
+    public function test_bundledCertificatesAreValidRsaPublicKeys(): void
+    {
+        foreach (['SandboxCertificate.cer', 'ProductionCertificate.cer'] as $filename) {
+            $path = dirname(__DIR__, 2) . '/certs/' . $filename;
+
+            $this->assertFileExists($path);
+
+            $publicKey = openssl_pkey_get_public((string) file_get_contents($path));
+            $this->assertNotFalse($publicKey, "{$filename} did not yield a usable RSA public key.");
+
+            $details = openssl_pkey_get_details($publicKey);
+            $this->assertSame(OPENSSL_KEYTYPE_RSA, $details['type']);
+        }
+    }
+
+    #[Test]
+    public function test_defaultsToBundledSandboxCertificateWhenNoOverrideIsConfigured(): void
+    {
+        Http::fake([
+            '*/oauth/v1/generate*' => Http::response(['access_token' => 'access-token', 'expires_in' => 3599]),
+            '*/mpesa/transactionstatus/v1/query' => Http::response(['ResponseCode' => '0']),
+        ]);
+
+        $manager = new RequestManager([
+            'status' => 'sandbox',
+            'consumer_key' => 'test-key',
+            'consumer_secret' => 'test-secret',
+            'shortcode' => '174379',
+            'initiator_name' => 'test-initiator',
+            'initiator_password' => 'super-secret-password',
+        ]);
+
+        $manager->transactionStatus(
+            'UGEHJB6GMF',
+            'https://example.test/status/result',
+            'https://example.test/status/timeout'
+        );
+
+        Http::assertSent(function ($request) {
+            if (!str_contains($request->url(), '/mpesa/transactionstatus/v1/query')) {
+                return false;
+            }
+
+            // 2048-bit RSA ciphertext is always 256 bytes, i.e. 344 base64 characters.
+            return is_string($request['SecurityCredential']) && strlen($request['SecurityCredential']) === 344;
+        });
+    }
+
+    #[Test]
+    public function test_defaultsToBundledProductionCertificateWhenStatusIsLive(): void
+    {
+        Http::fake([
+            '*/oauth/v1/generate*' => Http::response(['access_token' => 'access-token', 'expires_in' => 3599]),
+            '*/mpesa/transactionstatus/v1/query' => Http::response(['ResponseCode' => '0']),
+        ]);
+
+        $manager = new RequestManager([
+            'status' => 'live',
+            'consumer_key' => 'test-key',
+            'consumer_secret' => 'test-secret',
+            'shortcode' => '174379',
+            'initiator_name' => 'test-initiator',
+            'initiator_password' => 'super-secret-password',
+        ]);
+
+        $manager->transactionStatus(
+            'UGEHJB6GMF',
+            'https://example.test/status/result',
+            'https://example.test/status/timeout'
+        );
+
+        Http::assertSent(function ($request) {
+            if (!str_contains($request->url(), '/mpesa/transactionstatus/v1/query')) {
+                return false;
+            }
+
+            return is_string($request['SecurityCredential']) && strlen($request['SecurityCredential']) === 344;
+        });
+    }
 }

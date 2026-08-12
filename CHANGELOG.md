@@ -17,6 +17,21 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - `MpesaSdk` instance methods (`authenticate`, `isAuthenticated`,
   `registerUrls`, `stkPush`, `transactionStatus`, `getEndpoint`, `app`,
   `requestManager`) so the `Mpesa` facade can proxy to them.
+- Bundled Safaricom's public `SecurityCredential` certificates
+  (`certs/SandboxCertificate.cer`, `certs/ProductionCertificate.cer`) — they
+  are public and identical for every integration, so `security_credential_cert`
+  is no longer required; it now only overrides the bundled default.
+- A C2B confirmation callback endpoint (`POST /signal/ingress/echo` by
+  default): `ConfirmationCallbackController`, a `C2bConfirmationData` DTO
+  parsed from Safaricom's documented flat Confirmation payload (`TransID`,
+  `TransAmount`, `MSISDN`, `BillRefNumber`, etc. — distinct from the STK
+  callback's nested `Body.stkCallback` shape), and a `C2bConfirmationReceived`
+  event. Configured the same way as the STK callback, under
+  `mpesa.callbacks.routes.confirmation` / `.controllers.confirmation` /
+  `.events.c2b_confirmation_received`. C2B *validation* remains unimplemented
+  — it's an opt-in Safaricom feature most integrations don't enable.
+- Extracted the STK callback controller's IP-allowlist logic into a
+  `ChecksCallbackIp` trait, shared with the new confirmation controller.
 
 ### Fixed
 
@@ -43,11 +58,15 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 ### Docs
 
 - Replaced the single long-form README with a topic-per-page documentation
-  site under `docs/` (Docsify, served via GitHub Pages), covering getting
-  started, configuration, usage, API reference, DTOs, callbacks, console
-  commands, security, and testing. The root README is now a short landing
-  page linking into it. `docs/wikis/api.md` was folded into the new
-  `callbacks.md` and `console-commands.md` pages and removed.
+  site under `docs/` (Docsify, served via GitHub Pages). The root README is
+  now a short landing page linking into it. `docs/wikis/api.md` was folded
+  into the new site and removed.
+- Organized the sidebar around one page per Daraja endpoint
+  (`docs/endpoints/authentication.md`, `register-url.md`, `stk-push.md`,
+  `transaction-status.md`), each self-contained with its method signature,
+  validation rules, response DTO, and related callback/console command,
+  instead of splitting that information across generic "API Reference",
+  "Callbacks", and "Console Commands" pages.
 
 ## [0.1.0] - 2026-06-19
 

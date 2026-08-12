@@ -22,8 +22,3 @@
 Open a private security advisory on the
 [GitHub repository](https://github.com/clipsmm/laravel-mpesa) rather than a
 public issue.
-
-## Audit history
-
-Point-in-time security audits and follow-up fixes are logged in
-[`docs/guides/security-audit.md`](guides/security-audit.md).

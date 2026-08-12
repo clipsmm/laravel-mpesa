@@ -45,16 +45,17 @@ use LaravelMpesa\MpesaSdk;
 ```
 
 See the [full documentation](https://clipsmm.github.io/laravel-mpesa/) for
-the `b2c`/`b2b` applications, the `SecurityCredential` certificate required by
-`transactionStatus()`, the `Mpesa` facade, typed DTOs, the inbound STK
-callback route, and the `mpesa:stk` / `mpesa:status` console commands.
+the `b2c`/`b2b` applications, the `Mpesa` facade, typed DTOs, the inbound STK
+and C2B confirmation callback routes, and the `mpesa:stk` / `mpesa:status`
+console commands. Safaricom's sandbox and production certificates for
+`SecurityCredential` (used by `transactionStatus()`) are bundled — no
+download required.
 
 ## Security
 
 Never log OAuth tokens, passkeys, initiator passwords, security credentials,
 or full callback payloads. See the full
-[security checklist](https://clipsmm.github.io/laravel-mpesa/#/security) and
-[audit history](docs/guides/security-audit.md).
+[security checklist](https://clipsmm.github.io/laravel-mpesa/#/security).
 
 ## Testing
 

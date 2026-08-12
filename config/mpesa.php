@@ -1,8 +1,10 @@
 <?php
 
+use LaravelMpesa\Events\Callbacks\C2bConfirmationReceived;
 use LaravelMpesa\Events\Callbacks\StkCallbackFailed;
 use LaravelMpesa\Events\Callbacks\StkCallbackReceived;
 use LaravelMpesa\Events\Callbacks\StkCallbackSucceeded;
+use LaravelMpesa\Http\Controllers\Callbacks\ConfirmationCallbackController;
 use LaravelMpesa\Http\Controllers\Callbacks\StkCallbackController;
 
 $defaultCallbackAllowedIps = app()->environment(['local', 'testing'])
@@ -40,14 +42,17 @@ return [
         ))),
         'routes' => [
             'stk' => null,
+            'confirmation' => null,
         ],
         'controllers' => [
             'stk' => StkCallbackController::class,
+            'confirmation' => ConfirmationCallbackController::class,
         ],
         'events' => [
             'stk_received' => StkCallbackReceived::class,
             'stk_succeeded' => StkCallbackSucceeded::class,
             'stk_failed' => StkCallbackFailed::class,
+            'c2b_confirmation_received' => C2bConfirmationReceived::class,
         ],
     ],
     'apps' => [

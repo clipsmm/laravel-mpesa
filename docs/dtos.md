@@ -9,9 +9,8 @@ Daraja field you haven't mapped is never silently lost.
 
 `LaravelMpesa\DTOs\Callbacks\StkCallbackData`
 
-Built by `StkCallbackController` from the STK callback body (see
-[Callbacks & Webhooks](callbacks.md)), and available on every dispatched
-callback event as `$event->callback`.
+Built by `StkCallbackController` from the [STK callback](endpoints/stk-push.md#receiving-the-stk-callback)
+body, and available on every dispatched callback event as `$event->callback`.
 
 ```php
 use LaravelMpesa\DTOs\Callbacks\StkCallbackData;
@@ -32,7 +31,7 @@ $callback->metadataValue('MpesaReceiptNumber'); // mixed|null
 
 `LaravelMpesa\DTOs\Responses\StkPushResponse`
 
-Wraps the synchronous response from [`stkPush()`](api-reference.md#requestmanagerstkpush).
+Wraps the synchronous response from [`stkPush()`](endpoints/stk-push.md).
 
 ```php
 use LaravelMpesa\DTOs\Responses\StkPushResponse;
@@ -49,13 +48,14 @@ $dto->accepted();          // bool — true when responseCode === '0'
 ```
 
 `accepted()` reflects Daraja's synchronous acceptance only; the customer's
-final payment outcome still arrives via the [STK callback](callbacks.md).
+final payment outcome still arrives via the
+[STK callback](endpoints/stk-push.md#receiving-the-stk-callback).
 
 ## `TransactionStatusResponse`
 
 `LaravelMpesa\DTOs\Responses\TransactionStatusResponse`
 
-Wraps the synchronous response from [`transactionStatus()`](api-reference.md#requestmanagertransactionstatus).
+Wraps the synchronous response from [`transactionStatus()`](endpoints/transaction-status.md).
 
 ```php
 use LaravelMpesa\DTOs\Responses\TransactionStatusResponse;
@@ -77,7 +77,7 @@ result URL.
 
 `LaravelMpesa\DTOs\Responses\RegisterUrlResponse`
 
-Wraps the response from [`registerUrls()`](api-reference.md#requestmanagerregisterurls).
+Wraps the response from [`registerUrls()`](endpoints/register-url.md).
 
 ```php
 use LaravelMpesa\DTOs\Responses\RegisterUrlResponse;
@@ -87,4 +87,33 @@ $dto = RegisterUrlResponse::fromArray($response);
 
 $dto->originatorConversationId; // ?string
 $dto->responseDescription;      // ?string
+```
+
+## `C2bConfirmationData`
+
+`LaravelMpesa\DTOs\Callbacks\C2bConfirmationData`
+
+Built by `ConfirmationCallbackController` from the
+[C2B confirmation callback](endpoints/register-url.md#receiving-the-confirmation-callback)
+body, and available on the dispatched event as `$event->confirmation`.
+
+```php
+use LaravelMpesa\DTOs\Callbacks\C2bConfirmationData;
+
+$confirmation = C2bConfirmationData::fromPayload($request->all());
+
+$confirmation->transactionType;    // string
+$confirmation->transId;            // string — Safaricom's transaction ID
+$confirmation->transTime;          // string — YmdHis
+$confirmation->transAmount;        // float
+$confirmation->businessShortCode;  // string
+$confirmation->billRefNumber;      // string — the account number the customer entered
+$confirmation->invoiceNumber;      // string
+$confirmation->orgAccountBalance;  // ?float — null when Safaricom sends it empty
+$confirmation->thirdPartyTransId;  // string
+$confirmation->msisdn;             // string — e.g. 254712345678
+$confirmation->firstName;          // string
+$confirmation->middleName;         // string
+$confirmation->lastName;           // string
+$confirmation->payload;            // array<string, mixed> — the raw callback body
 ```

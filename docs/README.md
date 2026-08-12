@@ -24,17 +24,20 @@ use LaravelMpesa\MpesaSdk;
 ## Where to go next
 
 - **[Getting Started](getting-started.md)** — requirements and installation.
-- **[Configuration](configuration.md)** — the `c2b`/`b2c`/`b2b` applications,
-  environment variables, and the `SecurityCredential` certificate.
-- **[Usage](usage.md)** — the SDK and the `Mpesa` facade.
-- **[API Reference](api-reference.md)** — every public method on `MpesaSdk`
-  and `RequestManager`.
-- **[DTOs](dtos.md)** — typed access to callback and response payloads.
-- **[Callbacks & Webhooks](callbacks.md)** — the inbound STK callback route,
-  IP allowlisting, and events.
-- **[Console Commands](console-commands.md)** — `mpesa:stk` and
-  `mpesa:status`.
-- **[Security](security.md)** — the operational checklist and audit history.
+- **[Configuration](configuration.md)** — the `c2b`/`b2c`/`b2b` applications
+  and environment variables.
+- **[Usage](usage.md)** — obtaining an SDK instance and the `Mpesa` facade.
+- **Endpoints** — one page per Daraja operation, each covering its method
+  signature, validation, response DTO, and related callback/console command:
+  - **[Authentication](endpoints/authentication.md)**
+  - **[Register URLs (C2B)](endpoints/register-url.md)** — including the
+    inbound confirmation callback.
+  - **[STK Push](endpoints/stk-push.md)** — including the inbound callback
+    and `mpesa:stk`.
+  - **[Transaction Status](endpoints/transaction-status.md)** — including
+    `SecurityCredential` and `mpesa:status`.
+- **[DTOs](dtos.md)** — every typed request/response payload in one place.
+- **[Security](security.md)** — the operational checklist.
 - **[Testing](testing.md)** — running the package's own test suite.
 - **[Changelog](changelog.md)**.
 

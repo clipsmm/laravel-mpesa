@@ -242,8 +242,8 @@ class RequestManager
 
     /**
      * Resolve the Daraja SecurityCredential: an explicit override, or the
-     * initiator password encrypted with the configured Safaricom public
-     * certificate. Daraja rejects a plaintext initiator password.
+     * initiator password encrypted with a Safaricom public certificate.
+     * Daraja rejects a plaintext initiator password.
      */
     private function securityCredential(): string
     {
@@ -255,8 +255,30 @@ class RequestManager
 
         return $this->encryptSecurityCredential(
             $this->requiredConfig('initiator_password'),
-            $this->requiredConfig('security_credential_cert'),
+            $this->securityCredentialCertPath(),
         );
+    }
+
+    /**
+     * Resolve the certificate used to encrypt SecurityCredential: an
+     * explicitly configured path, or the certificate this package bundles
+     * for the app's live/sandbox status. Safaricom's sandbox and production
+     * certificates are public and identical for every integration, so the
+     * bundled copies work out of the box; `security_credential_cert` remains
+     * available to override them if Safaricom rotates one before a package
+     * update ships.
+     */
+    private function securityCredentialCertPath(): string
+    {
+        $configured = $this->getConfig('security_credential_cert');
+
+        if (is_string($configured) && trim($configured) !== '') {
+            return $configured;
+        }
+
+        $filename = $this->isLive() ? 'ProductionCertificate.cer' : 'SandboxCertificate.cer';
+
+        return dirname(__DIR__).'/certs/'.$filename;
     }
 
     /**
