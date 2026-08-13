@@ -7,7 +7,10 @@ use LaravelMpesa\Events\Callbacks\StkCallbackSucceeded;
 use LaravelMpesa\Http\Controllers\Callbacks\ConfirmationCallbackController;
 use LaravelMpesa\Http\Controllers\Callbacks\StkCallbackController;
 
-$defaultCallbackAllowedIps = app()->environment(['local', 'testing'])
+// Config files load before Illuminate\Foundation\Bootstrap\LoadConfiguration
+// finishes detecting the environment, so app()->environment() is not usable
+// here; read APP_ENV directly instead.
+$defaultCallbackAllowedIps = in_array(env('APP_ENV'), ['local', 'testing'], true)
     ? ['*']
     : [
         '196.201.212.69',
