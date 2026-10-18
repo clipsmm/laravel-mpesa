@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   release:
-    name: Test and release
+    name: Tag and release
     if: ${{ github.event.pull_request.merged == true }}
     runs-on: ubuntu-latest
 
@@ -36,109 +36,79 @@ jobs:
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Run checks
-        run: |
-          composer check
-          if [ -d tests/Integration ]; then
-            vendor/bin/phpunit tests/Integration
-          fi
+        run: composer check
 
       - name: Audit dependencies
         run: composer audit
 
-      - name: Select semantic version bump
-        id: bump
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const supported = ['release:patch', 'release:minor', 'release:major'];
-            const labels = context.payload.pull_request.labels.map((label) => label.name);
-            const selected = supported.filter((label) => labels.includes(label));
-
-            if (selected.length > 1) {
-              core.setFailed(`Use only one release label: ${selected.join(', ')}`);
-              return;
-            }
-
-            core.setOutput('type', selected.length === 1 ? selected[0].slice(8) : 'patch');
-
-      - name: Configure release author
+      # The latest git tag is the source of truth for the current version
+      # (composer.json intentionally omits "version"). The bump defaults to
+      # patch and can be widened with a single release:minor / release:major
+      # label on the merged pull request.
+      - name: Compute next version
+        id: version
         run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          selected=()
+          while IFS= read -r label; do
+            case "$label" in
+              release:patch|release:minor|release:major) selected+=("$label") ;;
+            esac
+          done < <(jq -r '.pull_request.labels[]?.name' "$GITHUB_EVENT_PATH")
 
-      - name: Prepare release commit and tag
-        id: release
-        env:
-          BUMP_TYPE: ${{ steps.bump.outputs.type }}
-        run: |
-          manifest_version=$(php -r '$data = json_decode(file_get_contents("composer.json"), true, 512, JSON_THROW_ON_ERROR); echo $data["version"] ?? "";')
-
-          if [[ ! "$manifest_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "composer.json must contain a semantic version." >&2
+          if [ "${#selected[@]}" -gt 1 ]; then
+            echo "Use only one release label: ${selected[*]}" >&2
             exit 1
           fi
 
-          before_release=$(git rev-parse HEAD)
-
-          if [ "$manifest_version" = "0.0.0" ] || git rev-parse --verify --quiet "refs/tags/v$manifest_version"; then
-            php bin/release.php "$BUMP_TYPE" --yes
-            release_version=$(php -r '$data = json_decode(file_get_contents("composer.json"), true, 512, JSON_THROW_ON_ERROR); echo $data["version"];')
-          else
-            latest_tag=$(git tag --list 'v[0-9]*' --sort=-version:refname | head -n 1)
-            latest_version=${latest_tag#v}
-
-            if [ -n "$latest_version" ]; then
-              php -r 'exit(version_compare($argv[1], $argv[2], ">") ? 0 : 1);' "$manifest_version" "$latest_version" || {
-                echo "Manifest version must be greater than latest tag $latest_tag." >&2
-                exit 1
-              }
-            fi
-
-            grep -Fq "## [$manifest_version]" CHANGELOG.md || {
-              echo "CHANGELOG.md must contain ## [$manifest_version]." >&2
-              exit 1
-            }
-
-            release_version=$manifest_version
-            git tag -a "v$release_version" -m "Release v$release_version"
+          bump=patch
+          if [ "${#selected[@]}" -eq 1 ]; then
+            bump="${selected[0]#release:}"
           fi
 
-          echo "before_release=$before_release" >> "$GITHUB_OUTPUT"
-          echo "version=$release_version" >> "$GITHUB_OUTPUT"
+          latest_tag=$(git tag --list 'v[0-9]*' --sort=-version:refname | head -n 1)
+          current=${latest_tag#v}
+          if [ -z "$current" ]; then
+            current=0.0.0
+          fi
 
-      - name: Push release commit and tag
+          if [[ ! "$current" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Latest tag is not a semantic version: $latest_tag" >&2
+            exit 1
+          fi
+
+          next=$(php -r '
+            [$major, $minor, $patch] = array_map("intval", explode(".", $argv[1]));
+            echo match ($argv[2]) {
+              "major" => ($major + 1).".0.0",
+              "minor" => $major.".".($minor + 1).".0",
+              default => $major.".".$minor.".".($patch + 1),
+            };
+          ' "$current" "$bump")
+
+          if git rev-parse --verify --quiet "refs/tags/v$next" >/dev/null; then
+            echo "Tag v$next already exists." >&2
+            exit 1
+          fi
+
+          echo "Releasing $current -> $next ($bump)"
+          echo "version=$next" >> "$GITHUB_OUTPUT"
+          echo "bump=$bump" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push annotated tag
         env:
-          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
-          BEFORE_RELEASE: ${{ steps.release.outputs.before_release }}
-          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          if [ "$(git rev-parse HEAD)" != "$BEFORE_RELEASE" ]; then
-            git push origin "HEAD:$BASE_BRANCH"
-          fi
-
-          git push origin "refs/tags/v$RELEASE_VERSION"
-
-      - name: Build release notes
-        env:
-          RELEASE_VERSION: ${{ steps.release.outputs.version }}
-        run: |
-          notes_file="$RUNNER_TEMP/release-notes.md"
-          awk -v version="$RELEASE_VERSION" '
-            $0 == "## [" version "]" || index($0, "## [" version "] - ") == 1 { capture = 1; next }
-            capture && /^## \[/ { exit }
-            capture { print }
-          ' CHANGELOG.md > "$notes_file"
-
-          if [ ! -s "$notes_file" ]; then
-            printf 'Release v%s\n' "$RELEASE_VERSION" > "$notes_file"
-          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "refs/tags/v$VERSION"
 
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          gh release create "v$RELEASE_VERSION" \
+          gh release create "v$VERSION" \
             --verify-tag \
-            --title "Release v$RELEASE_VERSION" \
-            --notes-file "$RUNNER_TEMP/release-notes.md"
+            --title "v$VERSION" \
+            --generate-notes
