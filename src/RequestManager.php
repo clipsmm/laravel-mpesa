@@ -6,6 +6,7 @@ namespace LaravelMpesa;
 
 use Illuminate\Support\Facades\Http;
 use InvalidArgumentException;
+use LaravelMpesa\Support\PhoneNumber;
 use RuntimeException;
 
 class RequestManager
@@ -93,8 +94,10 @@ class RequestManager
         string $callbackUrl,
         string $transactionType = 'CustomerPayBillOnline'
     ): array {
-        if (preg_match('/^2547\d{8}$/', $receiver) !== 1) {
-            throw new InvalidArgumentException('Receiver must use the 2547XXXXXXXX format.');
+        $receiver = PhoneNumber::format($receiver);
+
+        if ($receiver === null) {
+            throw new InvalidArgumentException('Receiver must be a valid Kenyan mobile number in the 254XXXXXXXXX format.');
         }
 
         if ($amount <= 0) {

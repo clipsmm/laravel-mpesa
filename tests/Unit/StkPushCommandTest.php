@@ -43,6 +43,19 @@ class StkPushCommandTest extends TestCase
     }
 
     #[Test]
+    public function test_rejectsInvalidPhoneNumber(): void
+    {
+        $this->artisan('mpesa:stk', [
+            '--phone' => '12345',
+            '--amount' => '100',
+            '--ref' => 'RENT-1001',
+            '--callback' => 'https://example.test/mpesa/stk/callback',
+        ])->assertExitCode(Command::FAILURE);
+
+        Http::assertNothingSent();
+    }
+
+    #[Test]
     public function test_defaultsDescriptionWhenOmitted(): void
     {
         config()->set('mpesa.stk_callback_url', 'https://example.test/mpesa/stk/callback');

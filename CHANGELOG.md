@@ -32,6 +32,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   — it's an opt-in Safaricom feature most integrations don't enable.
 - Extracted the STK callback controller's IP-allowlist logic into a
   `ChecksCallbackIp` trait, shared with the new confirmation controller.
+- `LaravelMpesa\Support\PhoneNumber`, built on
+  [propaganistas/laravel-phone](https://github.com/propaganistas/laravel-phone),
+  for parsing, formatting, and validating Kenyan MSISDNs. `stkPush()` and the
+  `mpesa:stk --phone` option now accept any familiar Kenyan format and normalize
+  to `254XXXXXXXXX` without a leading `+` before contacting Daraja.
 
 ### Fixed
 

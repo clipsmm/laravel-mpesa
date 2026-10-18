@@ -7,6 +7,7 @@ namespace LaravelMpesa\Commands;
 use Illuminate\Console\Command;
 use LaravelMpesa\Commands\Concerns\ReadsScalarOptions;
 use LaravelMpesa\MpesaSdk;
+use LaravelMpesa\Support\PhoneNumber;
 use Throwable;
 
 class StkPushCommand extends Command
@@ -19,7 +20,7 @@ class StkPushCommand extends Command
 
     public function handle(): int
     {
-        $phone = $this->normalizePhone($this->optionString('phone'));
+        $phone = PhoneNumber::format($this->optionString('phone'));
         $amount = $this->parseAmount($this->option('amount'));
         $ref = trim($this->optionString('ref'));
         $description = trim($this->optionString('description')) ?: 'Description';
@@ -74,25 +75,6 @@ class StkPushCommand extends Command
         $this->info('Mpesa STK push request sent.');
 
         return self::SUCCESS;
-    }
-
-    private function normalizePhone(string $phone): ?string
-    {
-        $phone = preg_replace('/\D+/', '', $phone) ?? '';
-
-        if (preg_match('/^2547\d{8}$/', $phone) === 1) {
-            return $phone;
-        }
-
-        if (preg_match('/^07\d{8}$/', $phone) === 1) {
-            return '254'.substr($phone, 1);
-        }
-
-        if (preg_match('/^7\d{8}$/', $phone) === 1) {
-            return '254'.$phone;
-        }
-
-        return null;
     }
 
     private function parseAmount(mixed $amount): ?int
