@@ -65,6 +65,8 @@ request and let the automated workflow create the tag and release instead.
 
 ## Notes
 
+- The repository is configured to **automatically delete head branches** when a
+  pull request is merged, so feature branches are cleaned up on their own.
 - Automated release notes come from GitHub's generated notes (merged PRs since
   the previous tag). Curate `CHANGELOG.md` on a pull request if you want
   hand-written notes.
