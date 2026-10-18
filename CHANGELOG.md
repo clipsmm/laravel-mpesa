@@ -86,6 +86,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   Authentication / Register URLs / STK Push / Transaction Status — DTOs,
   Security, Testing, Changelog). `docs/wikis/api.md` was folded in and
   removed.
+- Corrected the `README.md` callback reference to match the code: documented
+  the `mpesa.callbacks.stk` / `mpesa.callbacks.confirmation` route names,
+  `MPESA_CALLBACK_ROUTES_ENABLED`, CIDR support in `allowed_ips`, and that
+  `getConfig()` lives on `RequestManager` (not `MpesaSdk`), plus clarified that
+  only `status` is shared between applications.
 
 ## [0.1.0] - 2026-06-19
 
