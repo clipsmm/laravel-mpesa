@@ -57,8 +57,35 @@ class RequestManagerTest extends TestCase
         $manager = MpesaSdk::instance();
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('2547XXXXXXXX');
-        $manager->stkPush('0712345678', 100, 'ORDER-1', 'Test', 'https://example.test/callback');
+        $this->expectExceptionMessage('254XXXXXXXXX');
+        $manager->stkPush('25471234567', 100, 'ORDER-1', 'Test', 'https://example.test/callback');
+    }
+
+    #[Test]
+    public function test_normalizesReceiverToDarajaFormat(): void
+    {
+        Http::fake([
+            '*/oauth/v1/generate*' => Http::response([
+                'access_token' => 'access-token',
+                'expires_in' => 3599,
+            ]),
+            '*/mpesa/stkpush/v1/processrequest' => Http::response([
+                'ResponseCode' => '0',
+            ]),
+        ]);
+
+        [$successful] = MpesaSdk::instance()->stkPush(
+            '0712 345 678',
+            100,
+            'ORDER-1',
+            'Test payment',
+            'https://example.test/callback'
+        );
+
+        $this->assertTrue($successful);
+        Http::assertSent(fn ($request) => $request->method() === 'POST'
+            && $request['PartyA'] === '254712345678'
+            && $request['PhoneNumber'] === '254712345678');
     }
 
     #[Test]

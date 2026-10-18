@@ -18,6 +18,7 @@ direct to Safaricom, no intermediary gateway.
 - [Usage](#usage)
   - [Obtaining an SDK instance](#obtaining-an-sdk-instance)
   - [The Mpesa facade](#the-mpesa-facade)
+  - [Phone numbers](#phone-numbers)
 - [Endpoints](#endpoints)
   - [Authentication](#authentication)
   - [Register URLs (C2B)](#register-urls-c2b)
@@ -220,6 +221,34 @@ rejected), and `getConfig(string $key, mixed $default = null): mixed` reads
 the manager's configuration snapshot — both available on `RequestManager`
 and `MpesaSdk`.
 
+### Phone numbers
+
+Safaricom's Daraja API expects Kenyan MSISDNs as `254XXXXXXXXX` — E.164 without
+the leading `+`. The package normalizes and validates phone numbers with
+[propaganistas/laravel-phone](https://github.com/propaganistas/laravel-phone)
+(Google's libphonenumber), and exposes the same helper it uses internally so
+host applications can normalize input before an STK push:
+
+```php
+use LaravelMpesa\Support\PhoneNumber;
+
+PhoneNumber::format('0712345678');       // '254712345678'
+PhoneNumber::format('+254 712 345 678'); // '254712345678'
+PhoneNumber::format('254712345678');      // '254712345678'
+PhoneNumber::format('12345');             // null — not a valid Kenyan mobile number
+
+PhoneNumber::isValid('0712345678');       // true
+PhoneNumber::isValid('+14155552671');     // false — not Kenyan
+```
+
+`format()` accepts `254XXXXXXXXX`, `+254712345678`, `07XXXXXXXX`, `7XXXXXXXX`,
+or a spaced variant, and returns `null` (never throws) for anything that is not
+a valid Kenyan mobile number. `isValid()` is a boolean shorthand for
+`format() !== null`. Requests built by [`stkPush()`](#stk-push) and the
+[`mpesa:stk` command](#mpesastk-console-command) go through the same
+normalization, so the number you pass always reaches Daraja as
+`254XXXXXXXXX`.
+
 ## Endpoints
 
 | Endpoint | Method |
@@ -406,12 +435,19 @@ use LaravelMpesa\MpesaSdk;
 
 Validated before any request is sent — throws `InvalidArgumentException` for:
 
-- `$receiver` not matching `2547XXXXXXXX`.
+- `$receiver` not a valid Kenyan mobile number.
 - `$amount` not a positive whole number.
 - `$ref` empty or longer than 100 characters.
 - `$description` empty or longer than 182 characters.
 - `$callbackUrl` not a valid HTTPS URL (unless sandbox + insecure callbacks
   allowed).
+
+`$receiver` accepts any familiar Kenyan format — `254XXXXXXXXX`,
+`+254712345678`, `07XXXXXXXX`, `7XXXXXXXX`, or a spaced variant — and is
+normalized with
+[propaganistas/laravel-phone](https://github.com/propaganistas/laravel-phone)
+(Google's libphonenumber) to the `254XXXXXXXXX` format Daraja expects, without
+the leading `+`.
 
 Authenticates automatically if needed (see [Authentication](#authentication)).
 
@@ -502,7 +538,7 @@ php artisan mpesa:stk --phone=254712345678 --amount=100 --ref=ORDER-1 --callback
 
 | Option | Required | Description |
 | --- | --- | --- |
-| `--phone` | Yes | Customer phone number — `2547XXXXXXXX`, `07XXXXXXXX`, or `7XXXXXXXX`. |
+| `--phone` | Yes | Customer phone number — `254XXXXXXXXX`, `+254712345678`, `07XXXXXXXX`, `7XXXXXXXX`, or a spaced variant. Normalized to `254XXXXXXXXX`. |
 | `--amount` | Yes | Whole-number amount to charge, greater than zero. |
 | `--ref` | Yes | Account reference (max 100 characters). |
 | `--callback` | No | STK callback URL. Falls back to `MPESA_STK_CALLBACK_URL` when omitted. |
