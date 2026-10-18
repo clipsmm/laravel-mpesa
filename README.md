@@ -79,8 +79,11 @@ use LaravelMpesa\MpesaSdk;
 ### Applications
 
 Configure each application in `.env`. Three applications are pre-defined —
-`c2b`, `b2c`, and `b2b` — each with its own independent set of credentials;
-none of them share values by default, so configure only the ones you use.
+`c2b`, `b2c`, and `b2b` — each with its own independent credentials
+(`consumer_key`, `consumer_secret`, `shortcode`, `passkey`, initiator values,
+and the optional `security_credential` overrides). Only the API `status` is
+shared, via a single `MPESA_API_STATUS`, so configure only the applications
+you actually use.
 
 ```dotenv
 MPESA_DEFAULT_APP=c2b
@@ -217,9 +220,10 @@ from a validated callback where one applies. Wrap `$response` in a
 
 `getEndpoint(string $url): string` resolves a relative Daraja path against
 the configured live or sandbox host (absolute URLs and path traversal are
-rejected), and `getConfig(string $key, mixed $default = null): mixed` reads
-the manager's configuration snapshot — both available on `RequestManager`
-and `MpesaSdk`.
+rejected), and is available on both `RequestManager` and `MpesaSdk`.
+`getConfig(string $key, mixed $default = null): mixed` reads the manager's
+immutable configuration snapshot; it lives on `RequestManager`, so reach it
+through `MpesaSdk::instance()->getConfig('shortcode')`.
 
 ### Phone numbers
 
@@ -477,18 +481,26 @@ idea if you override the route.
 
 Configuration lives under `mpesa.callbacks` in `config/mpesa.php`:
 
-- `enabled` — registers or disables the callback route.
-- `middleware` — route middleware for the callback endpoint.
-- `path_prefix` — shared callback route prefix.
+- `enabled` — registers or disables the callback routes. Defaults to `true`;
+  set `MPESA_CALLBACK_ROUTES_ENABLED=false` to disable them.
+- `middleware` — route middleware for the callback endpoints (defaults to
+  `['api']`).
+- `path_prefix` — shared callback route prefix (defaults to
+  `/signal/ingress`).
 - `allowed_ips` — callback source IP allowlist. Defaults to `*` for local and
   testing environments, and Safaricom's published callback IPs otherwise. Set
-  `MPESA_CALLBACK_ALLOWED_IPS` to a comma-separated list to override.
+  `MPESA_CALLBACK_ALLOWED_IPS` to a comma-separated list of IP addresses and/or
+  CIDR ranges to override; an empty list rejects every request.
 - `routes.stk` — full route override for the STK callback.
 - `controllers.stk` — controller class override. Host applications may
   replace the class or extend
   `LaravelMpesa\Http\Controllers\Callbacks\StkCallbackController`.
 - `events.stk_received`, `events.stk_succeeded`, `events.stk_failed` — event
   class overrides. Compatible events must accept a `StkCallbackData` instance.
+
+The two callback routes are named `mpesa.callbacks.stk` and
+`mpesa.callbacks.confirmation`, so they can be referenced with
+`route('mpesa.callbacks.stk')`.
 
 The default controller emits a received event for every accepted payload,
 then a succeeded event when `ResultCode` is `0` or a failed event for every
