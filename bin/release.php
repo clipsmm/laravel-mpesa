@@ -13,7 +13,7 @@ function main(array $arguments): int
         $composerPath = $root.'/composer.json';
         $changelogPath = $root.'/CHANGELOG.md';
         $composer = readComposer($composerPath);
-        $currentVersion = currentVersion($composer, $root);
+        $currentVersion = currentVersion($root);
         $nextVersion = bumpVersion($currentVersion, $options['type']);
 
         output("Release: {$currentVersion} -> {$nextVersion} ({$options['type']})");
@@ -41,11 +41,9 @@ function main(array $arguments): int
             return 0;
         }
 
-        $composer['version'] = $nextVersion;
-        writeJson($composerPath, $composer);
         writeFile($changelogPath, $updatedChangelog);
 
-        runGit($root, ['add', 'composer.json', 'CHANGELOG.md']);
+        runGit($root, ['add', 'CHANGELOG.md']);
         runGit($root, ['commit', '-m', "chore: release v{$nextVersion}"]);
         runGit($root, ['tag', '-a', "v{$nextVersion}", '-m', "Release v{$nextVersion}"]);
 
@@ -115,23 +113,10 @@ function readComposer(string $path): array
     return $composer;
 }
 
-function currentVersion(array $composer, string $root): string
+function currentVersion(string $root): string
 {
-    $manifestVersion = $composer['version'] ?? null;
     $tags = trim(runGit($root, ['tag', '--list', 'v[0-9]*', '--sort=-version:refname']));
     $latestTag = $tags === '' ? null : ltrim((string) strtok($tags, PHP_EOL), 'v');
-
-    if (is_string($manifestVersion) && $manifestVersion !== '') {
-        assertSemanticVersion($manifestVersion);
-
-        if ($latestTag !== null && $manifestVersion !== $latestTag) {
-            throw new RuntimeException(
-                "composer.json version {$manifestVersion} does not match latest tag v{$latestTag}."
-            );
-        }
-
-        return $manifestVersion;
-    }
 
     if ($latestTag === null) {
         return '0.0.0';
@@ -250,11 +235,6 @@ function runGit(string $root, array $arguments): string
     }
 
     return implode(PHP_EOL, $output);
-}
-
-function writeJson(string $path, array $data): void
-{
-    writeFile($path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR).PHP_EOL);
 }
 
 function writeFile(string $path, string $content): void

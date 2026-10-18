@@ -1,53 +1,73 @@
 # Release Process
 
-This package follows Semantic Versioning and keeps pending release notes under
-`## [Unreleased]` in `CHANGELOG.md`.
+This package follows Semantic Versioning. The **latest git tag is the source of
+truth** for the current version — `composer.json` intentionally omits the
+`version` field (Composer derives it from VCS tags), so the manifest can never
+drift out of sync with the published tags.
 
-## Commands
+## Automated releases (on pull request merge)
+
+`.github/workflows/release-on-pr-merge.yml` runs whenever a pull request is
+**merged** into `main` or `master`. It:
+
+1. checks out the merged target branch and runs `composer check` plus
+   `composer audit`;
+2. reads the latest `v*` tag to determine the current version;
+3. creates and pushes an **annotated** tag on the merge commit;
+4. publishes a GitHub Release with GitHub's auto-generated notes.
+
+The bump defaults to **patch**. Apply exactly one label to the merged pull
+request to widen it:
+
+| Label | Result |
+| --- | --- |
+| _(none)_ or `release:patch` | `0.1.1` → `0.1.2` |
+| `release:minor` | `0.1.1` → `0.2.0` |
+| `release:major` | `0.1.1` → `1.0.0` |
+
+The workflow only creates **tags and releases** — it never pushes a commit to
+`main`/`master`. That keeps it compatible with the branch protection rules
+(required review, signed commits, locked branch).
+
+## Manual releases
+
+Use these locally when you want to curate `CHANGELOG.md` yourself:
 
 ```bash
-# 0.0.0 -> 0.0.1
+# 0.1.1 -> 0.1.2
 composer release:patch
 
-# 0.0.0 -> 0.1.0
+# 0.1.1 -> 0.2.0
 composer release:minor
 
-# 0.0.0 -> 1.0.0
+# 0.1.1 -> 1.0.0
 composer release:major
 ```
 
-Preview a release without changing files or Git state:
+Preview without changing files, commits, tags, or remotes:
 
 ```bash
 composer release:patch -- --dry-run
 ```
 
-## Workflow
+A manual release:
 
-1. Add user-facing changes to the `Unreleased` changelog section.
-2. Run the package tests supported by the project.
-3. Commit all preparation work so the working tree is clean.
-4. Run the appropriate `composer release:*` command.
-5. Review the generated commit and annotated tag.
-6. Push explicitly with `git push origin HEAD && git push origin vX.Y.Z`, or
-   pass `--push` to the release command.
+- derives the current version from the latest `v*` tag,
+- moves the `## [Unreleased]` changelog entries under a new version heading,
+- commits the `CHANGELOG.md` change,
+- creates an annotated `vX.Y.Z` tag.
 
-Use `--yes` for non-interactive local release creation. A release command
-updates `composer.json` and `CHANGELOG.md`, creates a `chore: release vX.Y.Z`
-commit, and creates the matching annotated tag. It never pushes unless
-`--push` is present.
+It never pushes unless you pass `--push`. Use `--yes` for non-interactive use.
 
-## Automated Pull Request Releases
+The manual command is meant for maintainers who can push directly to the target
+branch. If the branch is protected, push the changelog commit through a pull
+request and let the automated workflow create the tag and release instead.
 
-`.github/workflows/release-on-pr-merge.yml` releases only merged pull requests
-targeting `main` or `master`. It runs tests and `composer audit`, then defaults
-to a patch bump. Apply exactly one `release:minor` or `release:major` label to
-select a different bump.
+## Notes
 
-The workflow updates the manifest and changelog, creates and pushes an
-annotated tag, and creates the GitHub Release. If the PR already contains a
-version prepared with `composer release:*`, it validates and uses that version
-without bumping twice.
-
-Repository settings must grant GitHub Actions write access to contents and
-allow its release commit on the protected target branch.
+- Automated release notes come from GitHub's generated notes (merged PRs since
+  the previous tag). Curate `CHANGELOG.md` on a pull request if you want
+  hand-written notes.
+- Do **not** add a `version` field back to `composer.json`. A stale value there
+  was what previously caused releases to fail with
+  `composer.json version ... does not match latest tag ...`.

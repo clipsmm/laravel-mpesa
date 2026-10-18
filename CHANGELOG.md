@@ -62,6 +62,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Dev tooling
 
+- Reworked automated releases: merging a pull request now creates an incremental
+  annotated tag and GitHub Release from the latest tag (`release:minor` /
+  `release:major` labels widen the bump; patch by default). `composer.json` no
+  longer pins `version` — the git tag is the source of truth — so the release
+  job never has to write to the protected `master` branch.
 - Added Larastan (PHPStan level 8) and Laravel Pint, with `composer analyse`,
   `composer lint`, `composer format`, and an aggregate `composer check`.
   Fixed the resulting findings across the codebase (missing array-shape
@@ -96,5 +101,5 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Added secure authentication, HTTPS callback enforcement, input validation, finite timeouts, and safe endpoint construction.
 - Added a focused security test suite and public API documentation.
 
-[Unreleased]: https://github.com/clipsmm/laravel-mpesa/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/clipsmm/laravel-mpesa/compare/v0.1.1...HEAD
 [0.1.0]: https://github.com/clipsmm/laravel-mpesa/releases/tag/v0.1.0
